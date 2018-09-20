@@ -273,7 +273,7 @@ let order = await client.sell({
 Options and result are same with buy.
 
 ### trade({ pair, price, amount, fee, side })
-Place selling order
+Place order
 ```JavaScript
 let order = await client.trade({
   side: 'buy',
@@ -290,7 +290,7 @@ Options and result are same with buy. One extra options
 |side|O|`buy` or `sell`|
 
 ### withdraw({ token, amount, fee })
-Place selling order
+Withdraw
 ```JavaScript
 await client.withdraw({
   token: 'ETH',
