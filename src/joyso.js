@@ -11,16 +11,22 @@ const OrderBook = require('./order-book');
 const Trades = require('./trades');
 const MyTrades = require('./my-trades');
 
+BigNumber.config({ DECIMAL_PLACES: 36 });
+
+const keys = {};
+
 class Joyso {
   constructor(options = {}) {
     this.host = options.host || 'joyso.io';
     this.ssl = options.ssl === undefined ? true : options.ssl;
-    this.key = options.key;
-    if (this.key.indexOf('0x') !== 0) {
-      this.key = `0x${this.key}`;
+    let key = options.key;
+    if (key.indexOf('0x') !== 0) {
+      key = `0x${key}`;
     }
+    this.keyIndex = Object.keys(keys).length;
+    keys[this.keyIndex] = key;
     this.node = options.node;
-    this.address = `0x${ethUtil.privateToAddress(this.key).toString('hex')}`;
+    this.address = `0x${ethUtil.privateToAddress(key).toString('hex')}`;
     this.orderBooks = {};
     this.trades = {};
     this.hashTable = {};
@@ -32,7 +38,7 @@ class Joyso {
     }
     this.cable = ActionCable.createConsumer(this.wsUrl, this.origin);
     this.system = new System(this);
-    const json = await this.system.refresh();
+    const json = await this.system.update();
     this.tokenManager = new TokenManager(json.tokens);
     this.system.subscribe();
     await this.updateAccessToken();
@@ -51,22 +57,80 @@ class Joyso {
     const nonce = Math.floor(Date.now() / 1000);
     const raw = `joyso${nonce}`;
     const hash = ethUtil.keccak256(raw);
-    const signature = this.sign(hash);
+    const vrs = this.sign(hash);
     try {
       const r = await rp(this.createRequest('accounts', {
         method: 'POST',
-        body: {
-          v: signature.v,
-          r: signature.r.toString('hex'),
-          s: signature.s.toString('hex'),
+        body: Object.assign({
           user: this.address.substr(2),
           nonce: nonce
-        }
+        }, vrs)
       }));
       this.accessToken = r.access_token;
     } finally {
       this.timer = setTimeout(() => this.updateAccessToken(), 6000 * 60);
     }
+  }
+
+  async withdraw(options) {
+    const withdraw = this.createWithdraw(options);
+    try {
+      const r = await rp(this.createRequest('withdraw_queues', {
+        method: 'POST',
+        body: withdraw
+      }));
+    } catch (e) {
+      if (!options.retry && e.statusCode === 400 && e.error.fee_changed) {
+        options.retry = true;
+        await this.system.update();
+        return this.withdraw(options);
+      }
+      throw e;
+    }
+  }
+
+  createWithdraw({ token, amount, fee }) {
+    let tokenFee, paymentMethod;
+    if (fee === 'token') {
+      tokenFee = this.tokenManager.symbolMap[token];
+      paymentMethod = 2;
+    } else if (fee === 'joy') {
+      tokenFee = this.tokenManager.joy;
+      paymentMethod = 1;
+    } else {
+      tokenFee = this.tokenManager.eth;
+      paymentMethod = 0;
+    }
+    token = this.tokenManager.symbolMap[token];
+    console.log(tokenFee.withdraw_fee);
+    const withdrawFee = new BigNumber(tokenFee.withdraw_fee);
+    let rawAmount = this.tokenManager.toRawAmount(token, amount);
+    if (token === tokenFee) {
+      rawAmount = rawAmount.sub(withdrawFee);
+    }
+    const timestamp = Date.now();
+    const nonce = Math.floor(timestamp / 1000);
+    let data = _.padStart(nonce.toString(16), 8, '0');
+    data += '000000000000000';
+    data += paymentMethod;
+
+    let input = this.system.contract.substr(2);
+    input += _.padStart(rawAmount.toString(16), 64, '0');
+    input += _.padStart(withdrawFee.toString(16), 64, '0');
+    input += data;
+    input += token.address.substr(2);
+    const hash = ethUtil.keccak256(new Buffer(input, 'hex'));
+    const vrs = this.sign(hash);
+
+    return Object.assign({
+      nonce,
+      contract: this.system.contract.substr(2),
+      amount: rawAmount.toString(10),
+      fee: withdrawFee.toString(10),
+      user: this.address.substr(2),
+      token: token.address.substr(2),
+      payment_method: fee
+    }, vrs)
   }
 
   async buy(options) {
@@ -97,7 +161,7 @@ class Joyso {
     } catch (e) {
       if (!options.retry && e.statusCode === 400 && e.error.fee_changed) {
         options.retry = true;
-        await this.system.refresh();
+        await this.system.update();
         return this.trade(options);
       }
       throw e;
@@ -212,8 +276,8 @@ class Joyso {
     while (this.hashTable[nonce] && this.hashTable[nonce][hash] && retry < 60) {
       hash = createHash(nonce + ++retry);
     }
-    const signature = this.sign(hash);
-    return {
+    const vrs = this.sign(hash);
+    return Object.assign({
       nonce,
       maker_fee: makerFee,
       taker_fee: takerFee,
@@ -226,11 +290,8 @@ class Joyso {
       amount_sell: amountSell.toString(10),
       amount_buy: amountBuy.toString(10),
       payment_method: fee,
-      v: signature.v,
-      r: signature.r.toString('hex'),
-      s: signature.s.toString('hex'),
       hash: hash.toString('hex')
-    };
+    }, vrs);
   }
 
   cancel(orderId) {
@@ -326,7 +387,12 @@ class Joyso {
 
   sign(hash) {
     const message = ethUtil.hashPersonalMessage(hash);
-    return ethUtil.ecsign(message, ethUtil.toBuffer(this.key));
+    const vrs = ethUtil.ecsign(message, ethUtil.toBuffer(keys[this.keyIndex]));
+    return {
+      v: vrs.v,
+      r: vrs.r.toString('hex'),
+      s: vrs.s.toString('hex'),
+    };
   }
 
   updateHashTable(nonce, hash) {

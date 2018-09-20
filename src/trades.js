@@ -18,8 +18,8 @@ class Trades {
       base: this.base.address.substr(2),
       token: this.quote.address.substr(2)
     }, {
-      connected: () => this.updateTrades(),
-      received: () => this.updateTrades()
+      connected: () => this.update(),
+      received: () => this.update()
     });
   }
 
@@ -29,9 +29,9 @@ class Trades {
     this.onUnsubscribe();
   }
 
-  async updateTrades() {
+  async update() {
     const after = this.trades.length ? this.trades[0].id : null;
-    const json = await this.getTrades(after);
+    const json = await this.get(after);
     const trades = this.convert(json.trades, false);
     if (after) {
       this.trades.unshift(...trades);
@@ -57,7 +57,7 @@ class Trades {
     });
   }
 
-  getTrades(after = null) {
+  get(after = null) {
     return rp(this.client.createRequest('trades', {
       qs: {
         base: this.base.address.substr(2),

@@ -69,16 +69,24 @@ async function start() {
       amount: 100,
       fee: 'joy'
     });
+
+    // cancel order
+    await client.cancel(363);
+
+    // withdraw
+    await client.withdraw({
+      token: 'ETH',
+      amount: 0.01,
+      fee: 'eth'
+    });
   } catch (e) {
     if (e.statusCode === 400) {
       console.log(e.error.error);
     } else {
+      throw e;
       console.log(e.message);
     }
   }
-
-  // cancel order
-  await client.cancel(363);
 }
 
 start();

@@ -1,10 +1,10 @@
-# JOYSO API
+# JOYSO
 JOYSO API client library for trading.
 
 ## Installation
 You can use this command to install:
 
-    npm install joyso-api
+    npm install joyso
 
 ## Usage
 Setup and connect to JOYSO

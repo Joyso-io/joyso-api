@@ -24,7 +24,7 @@ class System {
     delete this.cable;
   }
 
-  async refresh() {
+  async update() {
     const json = await rp(this.client.createRequest('system'));
     this.contract = `0x${json.contracts[0]}`;
     this.updateConfig(json);

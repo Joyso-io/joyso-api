@@ -1,5 +1,4 @@
 const BigNumber = require('bignumber.js');
-BigNumber.config({ DECIMAL_PLACES: 36 });
 
 class TokenManager {
   constructor(tokens) {

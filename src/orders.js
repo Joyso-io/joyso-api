@@ -19,12 +19,12 @@ class Orders {
     }, {
       connected: async () => {
         this.orders = [];
-        this.updateOrders();
+        this.update();
       },
       received: data => {
         switch (data.e) {
           case 'new':
-            return this.updateOrders();
+            return this.update();
           case 'update':
             const order = this.orders.find(t => t.id === data.data.id);
             if (order) {
@@ -37,7 +37,7 @@ class Orders {
               }
               this.onReceived(this.orders);
             } else {
-              this.updateOrders();
+              this.update();
             }
             break;
         }
@@ -51,9 +51,9 @@ class Orders {
     this.balances = {};
   }
 
-  async updateOrders() {
+  async update() {
     const after = this.orders.length ? this.orders[0].id : null;
-    const result = await this.getOrders(after);
+    const result = await this.get(after);
     const orders = this.convert(result.orders);
     if (after) {
       this.orders.unshift(...orders);
@@ -82,7 +82,7 @@ class Orders {
     });
   }
 
-  getOrders(after = null) {
+  get(after = null) {
     return rp(this.client.createRequest('orders/mine', {
       qs: {
         contract: this.client.system.contract.substr(2),

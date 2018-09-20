@@ -16,7 +16,7 @@ class Balances {
       user: this.address.substr(2)
     }, {
       connected: async () => {
-        const json = await this.getBalances();
+        const json = await this.get();
         json.balances.forEach(balance => this.updateBalance(balance));
         this.onReceived(this.balances);
       },
@@ -43,7 +43,7 @@ class Balances {
     }
   }
 
-  getBalances() {
+  get() {
     return rp(this.client.createRequest('balances', {
       qs: {
         contract: this.client.system.contract.substr(2),

@@ -17,7 +17,7 @@ class OrderBook {
       base: this.base.address.substr(2),
       token: this.quote.address.substr(2)
     }, {
-      connected: () => this.updateOrders(),
+      connected: () => this.update(),
       received: data => {
         ['buy', 'sell'].forEach(type => {
           Object.keys(data[type]).forEach(price => {
@@ -28,7 +28,7 @@ class OrderBook {
             }
           });
         });
-        this.updateOrderBook();
+        this.notify();
       }
     });
   }
@@ -39,37 +39,37 @@ class OrderBook {
     this.onUnsubscribe();
   }
 
-  async updateOrders() {
-    const json = await this.getOrderBook();
+  async update() {
+    const json = await this.get();
     ['buy', 'sell'].forEach(t => {
       Object.keys(json[t]).forEach(k => {
         json[t][k] = new BigNumber(json[t][k]);
       });
     });
     this.orderBook = json;
-    this.updateOrderBook();
+    this.notify();
   }
 
-  updateOrderBook() {
-    this.buyOrders = Object.keys(this.orderBook.buy)
-      .map(key => this.processOrderBook(key, this.orderBook.buy[key])).sort((a, b) => {
+  notify() {
+    const buyOrders = Object.keys(this.orderBook.buy)
+      .map(key => this.convert(key, this.orderBook.buy[key])).sort((a, b) => {
         return b.price - a.price;
       });
-    this.sellOrders = Object.keys(this.orderBook.sell)
-      .map(key => this.processOrderBook(key, this.orderBook.sell[key])).sort((a, b) => {
+    const sellOrders = Object.keys(this.orderBook.sell)
+      .map(key => this.convert(key, this.orderBook.sell[key])).sort((a, b) => {
         return a.price - b.price;
       });
 
-    this.onReceived({ buy: this.buyOrders, sell: this.sellOrders });
+    this.onReceived({ buy: buyOrders, sell: sellOrders });
   }
 
-  processOrderBook(key, amount) {
+  convert(key, amount) {
     const quote = this.client.tokenManager.toAmount(this.quote, amount);
     const price = parseFloat(key);
     return { price, amount: quote };
   }
 
-  getOrderBook() {
+  get() {
     return rp(this.client.createRequest('orders', {
       qs: {
         contract: this.client.system.contract.substr(2),

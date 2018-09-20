@@ -24,12 +24,12 @@ class MyTrades {
         if (index !== -1) {
           this.trades = this.trades.slice(index + 1);
         }
-        this.updateTrades();
+        this.update();
       },
       received: data => {
         switch (data.e) {
           case 'new':
-            return this.updateTrades();
+            return this.update();
           case 'update':
             const trade = this.trades.find(t => t.id === data.data.id);
             if (trade) {
@@ -38,7 +38,7 @@ class MyTrades {
                 trade.txHash = `0x${data.data.txHash}`;
               }
             } else {
-              this.updateTrades();
+              this.update();
             }
             break;
         }
@@ -52,9 +52,9 @@ class MyTrades {
     this.balances = {};
   }
 
-  async updateTrades() {
+  async update() {
     const after = this.trades.length ? this.trades[0].id : null;
-    const json = await this.getTrades(after);
+    const json = await this.get(after);
     const trades = this.convert(json.trades, true);
     if (after) {
       this.trades.unshift(...trades);
@@ -88,7 +88,7 @@ class MyTrades {
     });
   }
 
-  getTrades(after = null) {
+  get(after = null) {
     return rp(this.client.createRequest('trades/mine', {
       qs: {
         user: this.address.substr(2),
