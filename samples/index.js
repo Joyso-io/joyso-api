@@ -1,40 +1,40 @@
 const Joyso = require('../src/joyso');
 
 async function start() {
-  const client = new Joyso({
+  const joyso = new Joyso({
     // your private key
     key: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
   });
 
-  await client.connect();
+  await joyso.connect();
 
   // subscribe order book, notify if change
-  client.subscribeOrderBook('ETH_JOY', orderBook => {
+  joyso.subscribeOrderBook('ETH_JOY', orderBook => {
     console.log(JSON.stringify(orderBook));
   });
 
   // subscribe market trades, notify if change
-  client.subscribeTrades('ETH_JOY', trades => {
+  joyso.subscribeTrades('ETH_JOY', trades => {
     console.log(JSON.stringify(trades.slice(0, 5)));
   });
 
   // subscribe balances, notify if change
-  client.subscribeBalances(balances => {
+  joyso.subscribeBalances(balances => {
     console.log(JSON.stringify(balances));
   });
 
   // subscribe open orders, notify if change
-  client.subscribeOrders(orders => {
+  joyso.subscribeOrders(orders => {
     console.log(JSON.stringify(orders));
   });
 
   // subscribe my trades, notify if change
-  client.subscribeMyTrades(trades => {
+  joyso.subscribeMyTrades(trades => {
     console.log(JSON.stringify(trades));
   });
 
   // subscribe funds, notify if change
-  client.subscribeFunds(funds => {
+  joyso.subscribeFunds(funds => {
     console.log(JSON.stringify(funds));
   });
 
@@ -42,7 +42,7 @@ async function start() {
     let order;
 
     // place buying order
-    order = await client.buy({
+    order = await joyso.buy({
       pair: 'ETH_JOY',
       price: '0.000123481',
       amount: 1,
@@ -50,7 +50,7 @@ async function start() {
     });
 
     // place selling order
-    order = await client.sell({
+    order = await joyso.sell({
       pair: 'ETH_JOY',
       price: '0.000123481',
       amount: 100,
@@ -58,7 +58,7 @@ async function start() {
     });
 
     // or place order by trade with side
-    order = await client.trade({
+    order = await joyso.trade({
       side: 'buy',
       pair: 'ETH_JOY',
       price: '0.000123481',
@@ -67,10 +67,10 @@ async function start() {
     });
 
     // cancel order
-    await client.cancel(363);
+    await joyso.cancel(363);
 
     // withdraw
-    await client.withdraw({
+    await joyso.withdraw({
       token: 'ETH',
       amount: 0.01,
       fee: 'eth'

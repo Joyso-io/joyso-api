@@ -12,12 +12,12 @@ Setup and connect to JOYSO
 const Joyso = require('joyso');
 
 async function start() {
-  const client = new Joyso({
+  const joyso = new Joyso({
     // your private key
     key: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
   });
 
-  await client.connect();
+  await joyso.connect();
 }
 
 ```
@@ -25,7 +25,7 @@ async function start() {
 ### subscribeOrderBook(pair, callback)
 Subscribe order book, notify if change.
 ```JavaScript
-client.subscribeOrderBook('ETH_JOY', orderBook => {
+joyso.subscribeOrderBook('ETH_JOY', orderBook => {
   console.log(JSON.stringify(orderBook));
 });
 ```
@@ -59,7 +59,7 @@ Result:
 ### subscribeTrades(pair, callback)
 Subscribe market trades, notify if change, return last 100 records.
 ```JavaScript
-client.subscribeTrades('ETH_JOY', trades => {
+joyso.subscribeTrades('ETH_JOY', trades => {
   console.log(JSON.stringify(trades.slice(0, 2)));
 });
 ```
@@ -87,7 +87,7 @@ Result
 ### subscribeBalances(callback)
 Subscribe balances, notify if change.
 ```JavaScript
-client.subscribeBalances(balances => {
+joyso.subscribeBalances(balances => {
   console.log(JSON.stringify(balances));
 });
 ```
@@ -109,7 +109,7 @@ Result
 ### subscribeOrders(callback)
 Subscribe open orders, notify if change.
 ```JavaScript
-client.subscribeOrders(orders => {
+joyso.subscribeOrders(orders => {
   console.log(JSON.stringify(orders));
 });
 ```
@@ -142,7 +142,7 @@ Result
 ### subscribeMyTrades(callback)
 Subscribe my trades, notify if change, return last 100 records.
 ```JavaScript
-client.subscribeMyTrades(trades => {
+joyso.subscribeMyTrades(trades => {
   console.log(JSON.stringify(trades.slice(0, 2)));
 });
 ```
@@ -180,7 +180,7 @@ Result
 ### subscribeFunds(callback)
 Subscribe funds, notify if change, return last 100 records.
 ```JavaScript
-client.subscribeFunds(funds => {
+joyso.subscribeFunds(funds => {
   console.log(JSON.stringify(funds));
 });
 ```
@@ -221,7 +221,7 @@ Result
 Place buying order
 ```JavaScript
 try {
-  let order = await client.buy({
+  let order = await joyso.buy({
     pair: 'ETH_JOY',
     price: '0.000123481',
     amount: 1,
@@ -263,7 +263,7 @@ Result
 ### sell({ pair, price, amount, fee })
 Place selling order
 ```JavaScript
-let order = await client.sell({
+let order = await joyso.sell({
   pair: 'ETH_JOY',
   price: '0.000123481',
   amount: 100,
@@ -275,7 +275,7 @@ Options and result are same with buy.
 ### trade({ pair, price, amount, fee, side })
 Place order
 ```JavaScript
-let order = await client.trade({
+let order = await joyso.trade({
   side: 'buy',
   pair: 'ETH_JOY',
   price: '0.000123481',
@@ -292,7 +292,7 @@ Options and result are same with buy. One extra options
 ### withdraw({ token, amount, fee })
 Withdraw
 ```JavaScript
-await client.withdraw({
+await joyso.withdraw({
   token: 'ETH',
   amount: 0.01,
   fee: 'eth'
