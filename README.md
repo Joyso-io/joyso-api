@@ -9,7 +9,7 @@ You can use this command to install:
 ## Usage
 Setup and connect to JOYSO
 ```JavaScript
-const Joyso = require('joyso-api');
+const Joyso = require('joyso');
 
 async function start() {
   const client = new Joyso({
