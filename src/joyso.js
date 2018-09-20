@@ -1,0 +1,367 @@
+const rp = require('request-promise');
+const ethUtil = require('ethereumjs-util');
+const BigNumber = require('bignumber.js');
+const _ = require('lodash');
+const ActionCable = require('./actioncable');
+const System = require('./system');
+const TokenManager = require('./token_manager');
+const Balances = require('./balances');
+const Orders = require('./orders');
+const OrderBook = require('./order-book');
+const Trades = require('./trades');
+const MyTrades = require('./my-trades');
+
+class Joyso {
+  constructor(options = {}) {
+    this.host = options.host || 'joyso.io';
+    this.ssl = options.ssl === undefined ? true : options.ssl;
+    this.key = options.key;
+    if (this.key.indexOf('0x') !== 0) {
+      this.key = `0x${this.key}`;
+    }
+    this.node = options.node;
+    this.address = `0x${ethUtil.privateToAddress(this.key).toString('hex')}`;
+    this.orderBooks = {};
+    this.trades = {};
+    this.hashTable = {};
+  }
+
+  async connect() {
+    if (this.connected) {
+      return;
+    }
+    this.cable = ActionCable.createConsumer(this.wsUrl, this.origin);
+    this.system = new System(this);
+    const json = await this.system.refresh();
+    this.tokenManager = new TokenManager(json.tokens);
+    this.system.subscribe();
+    await this.updateAccessToken();
+    this.orders = new Orders({
+      client: this,
+      address: this.address
+    });
+    this.myTrades = new MyTrades({
+      client: this,
+      address: this.address
+    });
+    this.connected = true;
+  }
+
+  async updateAccessToken() {
+    const nonce = Math.floor(Date.now() / 1000);
+    const raw = `joyso${nonce}`;
+    const hash = ethUtil.keccak256(raw);
+    const signature = this.sign(hash);
+    try {
+      const r = await rp(this.createRequest('accounts', {
+        method: 'POST',
+        body: {
+          v: signature.v,
+          r: signature.r.toString('hex'),
+          s: signature.s.toString('hex'),
+          user: this.address.substr(2),
+          nonce: nonce
+        }
+      }));
+      this.accessToken = r.access_token;
+    } finally {
+      this.timer = setTimeout(() => this.updateAccessToken(), 6000 * 60);
+    }
+  }
+
+  async buy(options) {
+    options.side = 'buy';
+    return this.trade(options);
+  }
+
+  async sell(options) {
+    options.side = 'sell';
+    return this.trade(options);
+  }
+
+  async trade(options) {
+    const order = this.createOrder(options);
+    try {
+      const hash = order.hash;
+      delete order.hash;
+      const r = await rp(this.createRequest('orders', {
+        method: 'POST',
+        body: order
+      }));
+      this.updateHashTable(order.nonce, hash);
+      order.is_buy = options.side === 'buy';
+      order.id = r.order.id;
+      order.status = r.order.status;
+      order.amount_fill = r.order.amount_fill;
+      return this.orders.convert([order])[0];
+    } catch (e) {
+      if (!options.retry && e.statusCode === 400 && e.error.fee_changed) {
+        options.retry = true;
+        await this.system.refresh();
+        return this.trade(options);
+      }
+      throw e;
+    }
+  }
+
+  toAmountByPrice(token, quoteAmount, price, method) {
+    const amount = this.tokenManager.toRawAmount(token, quoteAmount.mul(price), method);
+    return this.tokenManager.toAmount(token, amount);
+  }
+
+  toPrice(baseAmount, quoteAmount) {
+    return baseAmount.div(quoteAmount).round(9);
+  }
+
+  validateOrder(price, amount, fee, side) {
+    const v = new BigNumber(price).mul(1000000000);
+    if (!v.truncated().equals(v)) {
+      throw new Error('invalid price');
+    }
+    if (amount <= 0) {
+      throw new Error('invalid amount');
+    }
+    if (fee !== 'base' && fee !== 'joy' && fee !== 'eth') {
+      throw new Error('invalid fee');
+    }
+    if (side !== 'buy' && side !== 'sell') {
+      throw new Error('invalid side');
+    }
+  }
+
+  createOrder({ pair, price, amount, fee, side }) {
+    this.validateOrder(price, amount, fee, side);
+    const [base, quote]= this.tokenManager.getPair(pair);
+    if (!base || !quote || base !== this.tokenManager.eth) {
+      throw new Error('invalid pair');
+    }
+    let quoteAmount = new BigNumber(amount);
+    let method = side === 'buy' ? 'ceil' : 'floor';
+    let baseAmount = this.toAmountByPrice(base, quoteAmount, price, method);
+    if (!this.toPrice(baseAmount, quoteAmount).equals(price)) {
+      method = method === 'floor' ? 'ceil' : 'floor';
+      baseAmount = this.toAmountByPrice(base, quoteAmount, price, method);
+      if (!this.toPrice(baseAmount, quoteAmount).equals(price)) {
+        throw new Error('invalid amount, too small');
+      }
+    }
+    quoteAmount = this.tokenManager.toRawAmount(quote, quoteAmount);
+    baseAmount = this.tokenManager.toRawAmount(base, baseAmount);
+
+    let takerFee, makerFee, tokenFee, feePrice, custom = false;
+    if (quote.taker_fee && quote.maker_fee) {
+      takerFee = quote.taker_fee;
+      makerFee = quote.maker_fee;
+      custom = true;
+    } else {
+      takerFee = this.system.takerFee;
+      makerFee = this.system.makerFee;
+    }
+
+    if (fee === 'joy') {
+      tokenFee = this.tokenManager.joy;
+      if (!custom) {
+        takerFee = Math.floor(takerFee / 2);
+        makerFee = Math.floor(makerFee / 2);
+      }
+      feePrice = new BigNumber(tokenFee.price).mul(10000000).truncated();
+      if (feePrice.gt(100000000)) {
+        feePrice = new BigNumber(100000000);
+      } else if (feePrice.lt(1)) {
+        feePrice = new BigNumber(1);
+      }
+    } else {
+      tokenFee = this.tokenManager.eth;
+      feePrice = 0;
+    }
+    const gasFee = new BigNumber(tokenFee.gas_fee);
+
+    let amountSell, amountBuy, tokenSell, tokenBuy;
+    if (side === 'buy') {
+      amountSell = baseAmount;
+      amountBuy = quoteAmount;
+      tokenSell = base.address;
+      tokenBuy = quote.address;
+    } else {
+      amountSell = quoteAmount;
+      amountBuy = baseAmount;
+      tokenSell = quote.address;
+      tokenBuy = base.address;
+    }
+
+    const createHash = (nonce) => {
+      let data = _.padStart(nonce.toString(16), 8, '0');
+      data += _.padStart(takerFee.toString(16), 4, '0');
+      data += _.padStart(makerFee.toString(16), 4, '0');
+      data += _.padStart(feePrice.toString(16), 7, '0');
+      data += side === 'buy' ? '1' : '0';
+
+      let input = this.system.contract.substr(2);
+      input += _.padStart(amountSell.toString(16), 64, '0');
+      input += _.padStart(amountBuy.toString(16), 64, '0');
+      input += _.padStart(gasFee.toString(16), 64, '0');
+      input += data;
+      input += quote.address.substr(2);
+      return ethUtil.keccak256(new Buffer(input, 'hex'));
+    };
+
+    const timestamp = Date.now();
+    const nonce = Math.floor(timestamp / 1000);
+    let hash = createHash(nonce);
+    let retry = 0;
+    while (this.hashTable[nonce] && this.hashTable[nonce][hash] && retry < 60) {
+      hash = createHash(nonce + ++retry);
+    }
+    const signature = this.sign(hash);
+    return {
+      nonce,
+      maker_fee: makerFee,
+      taker_fee: takerFee,
+      fee_price: feePrice,
+      token_sell: tokenSell.substr(2),
+      token_buy: tokenBuy.substr(2),
+      user: this.address.substr(2),
+      contract: this.system.contract.substr(2),
+      gas_fee: gasFee.toString(10),
+      amount_sell: amountSell.toString(10),
+      amount_buy: amountBuy.toString(10),
+      payment_method: fee,
+      v: signature.v,
+      r: signature.r.toString('hex'),
+      s: signature.s.toString('hex'),
+      hash: hash.toString('hex')
+    };
+  }
+
+  cancel(orderId) {
+    return rp(this.createRequest(`orders/${orderId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`
+      }
+    }));
+  }
+
+  subscribeOrderBook(pair, callback) {
+    if (!this.connected) {
+      throw new Error('client is not connected');
+    }
+    const [base, quote] = this.tokenManager.getPair(pair);
+    if (!base || !quote || base !== this.tokenManager.eth) {
+      throw new Error('invalid pair');
+    }
+    if (this.orderBooks[pair]) {
+      this.orderBooks[pair].unsubscribe();
+    }
+    this.orderBooks[pair] = new OrderBook({
+      base, quote,
+      client: this,
+      onReceived: callback,
+      onUnsubscribe: () => delete this.orderBooks[pair]
+    });
+    this.orderBooks[pair].subscribe();
+    return this.orderBooks[pair];
+  }
+
+  subscribeTrades(pair, callback) {
+    if (!this.connected) {
+      throw new Error('client is not connected');
+    }
+    const [base, quote] = this.tokenManager.getPair(pair);
+    if (!base || !quote || base !== this.tokenManager.eth) {
+      throw new Error('invalid pair');
+    }
+    if (this.trades[pair]) {
+      this.trades[pair].unsubscribe();
+    }
+    this.trades[pair] = new Trades({
+      base, quote,
+      client: this,
+      onReceived: callback,
+      onUnsubscribe: () => delete this.trades[pair]
+    });
+    this.trades[pair].subscribe();
+    return this.trades[pair];
+  }
+
+  subscribeMyTrades(callback) {
+    if (!this.connected) {
+      throw new Error('client is not connected');
+    }
+    this.myTrades.onReceived = callback;
+    if (this.myTrades.cable) {
+      this.myTrades.unsubscribe();
+    }
+    this.myTrades.subscribe();
+    return this.myTrades;
+  }
+
+  subscribeOrders(callback) {
+    if (!this.connected) {
+      throw new Error('client is not connected');
+    }
+    this.orders.onReceived = callback;
+    if (this.orders.cable) {
+      this.orders.unsubscribe();
+    }
+    this.orders.subscribe();
+    return this.orders;
+  }
+
+  subscribeBalances(callback) {
+    if (!this.connected) {
+      throw new Error('client is not connected');
+    }
+    if (this.balances) {
+      this.balances.unsubscribe();
+    }
+    this.balances = new Balances({
+      client: this,
+      address: this.address,
+      onReceived: callback
+    });
+    this.balances.subscribe();
+    return this.balances;
+  }
+
+  sign(hash) {
+    const message = ethUtil.hashPersonalMessage(hash);
+    return ethUtil.ecsign(message, ethUtil.toBuffer(this.key));
+  }
+
+  updateHashTable(nonce, hash) {
+    if (!this.hashTable[nonce]) {
+      this.hashTable[nonce] = {};
+    }
+    this.hashTable[nonce][hash] = true;
+    const now = Math.floor(Date.now() / 1000);
+    Object.keys(this.hashTable).forEach(k => {
+      if (k < now) {
+        delete this.hashTable[k];
+      }
+    });
+  }
+
+  get origin() {
+    const protocol = this.ssl ? 'https' : 'http'
+    return `${protocol}://${this.host}`;
+  }
+
+  get apiUrl() {
+    return `${this.origin}/api/v1`;
+  }
+
+  get wsUrl() {
+    const protocol = this.ssl ? 'wss' : 'ws'
+    return `${protocol}://${this.host}/cable`;
+  }
+
+  createRequest(path, options) {
+    return Object.assign({
+      uri: `${this.apiUrl}/${path}`,
+      json: true
+    }, options);
+  }
+}
+
+module.exports = Joyso;

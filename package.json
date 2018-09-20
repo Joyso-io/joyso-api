@@ -1,0 +1,18 @@
+{
+  "name": "joyso-api-client",
+  "version": "1.0.0",
+  "description": "JOYSO API client",
+  "main": "src/client.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Yi-Cyuan Chen",
+  "license": "MIT",
+  "dependencies": {
+    "bignumber.js": "~4.1.0",
+    "ethereumjs-util": "^5.2.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.2",
+    "ws": "^6.0.0"
+  }
+}
