@@ -17,7 +17,7 @@ class MyTrades {
       channel: 'MyTradesChannel',
       user: this.address.substr(2)
     }, {
-      connected: async () => {
+      connected: () => {
         const index = _.findLastIndex(this.trades, trade => {
           return trade.status !== 'done';
         });
@@ -34,9 +34,10 @@ class MyTrades {
             const trade = this.trades.find(t => t.id === data.data.id);
             if (trade) {
               trade.status = STATUS[data.data.status];
-              if (data.data.txHash) {
-                trade.txHash = `0x${data.data.txHash}`;
+              if (data.data.tx_hash) {
+                trade.txHash = `0x${data.data.tx_hash}`;
               }
+              this.onReceived(this.trades);
             } else {
               this.update();
             }
@@ -76,7 +77,7 @@ class MyTrades {
       return {
         id: trade.id,
         status: STATUS[trade.status],
-        txHash: `0x${trade.tx_hash}`,
+        txHash: trade.tx_hash ? `0x${trade.tx_hash}` : null,
         side: trade.is_buy ? 'sell' : 'buy',
         price: baseAmount.div(quoteAmount).round(9).toNumber(),
         amount: quoteAmount,

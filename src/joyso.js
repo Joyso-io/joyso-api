@@ -10,6 +10,7 @@ const Orders = require('./orders');
 const OrderBook = require('./order-book');
 const Trades = require('./trades');
 const MyTrades = require('./my-trades');
+const Funds = require('./funds');
 
 BigNumber.config({ DECIMAL_PLACES: 36 });
 
@@ -47,6 +48,10 @@ class Joyso {
       address: this.address
     });
     this.myTrades = new MyTrades({
+      client: this,
+      address: this.address
+    });
+    this.funds = new Funds({
       client: this,
       address: this.address
     });
@@ -102,7 +107,6 @@ class Joyso {
       paymentMethod = 0;
     }
     token = this.tokenManager.symbolMap[token];
-    console.log(tokenFee.withdraw_fee);
     const withdrawFee = new BigNumber(tokenFee.withdraw_fee);
     let rawAmount = this.tokenManager.toRawAmount(token, amount);
     if (token === tokenFee) {
@@ -383,6 +387,18 @@ class Joyso {
     });
     this.balances.subscribe();
     return this.balances;
+  }
+
+  subscribeFunds(callback) {
+    if (!this.connected) {
+      throw new Error('client is not connected');
+    }
+    this.funds.onReceived = callback;
+    if (this.funds.cable) {
+      this.funds.unsubscribe();
+    }
+    this.funds.subscribe();
+    return this.funds;
   }
 
   sign(hash) {

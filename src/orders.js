@@ -17,7 +17,7 @@ class Orders {
       contract: this.client.system.contract.substr(2),
       user: this.address.substr(2)
     }, {
-      connected: async () => {
+      connected: () => {
         this.orders = [];
         this.update();
       },

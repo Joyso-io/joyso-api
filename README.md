@@ -57,7 +57,7 @@ Result:
 * amount is BigNumber object.
 
 ### subscribeTrades(pair, callback)
-Subscribe market trades, notify if change
+Subscribe market trades, notify if change, return last 100 records.
 ```JavaScript
   client.subscribeTrades('ETH_JOY', trades => {
     console.log(JSON.stringify(trades.slice(0, 2)));
@@ -85,7 +85,7 @@ Result
 * amount is BigNumber object.
 
 ### subscribeBalances(callback)
-Subscribe balances, notify if change
+Subscribe balances, notify if change.
 ```JavaScript
   client.subscribeBalances(balances => {
     console.log(JSON.stringify(balances));
@@ -107,7 +107,7 @@ Result
 * inOrder and available are BigNumber objects.
 
 ### subscribeOrders(callback)
-Subscribe open orders, notify if change
+Subscribe open orders, notify if change.
 ```JavaScript
   client.subscribeOrders(orders => {
     console.log(JSON.stringify(orders));
@@ -140,7 +140,7 @@ Result
 * status could be `active` or `partial`
 
 ### subscribeMyTrades(callback)
-Subscribe my trades, notify if change
+Subscribe my trades, notify if change, return last 100 records.
 ```JavaScript
   client.subscribeMyTrades(trades => {
     console.log(JSON.stringify(trades.slice(0, 2)));
@@ -176,6 +176,44 @@ Result
 ]
 ```
 * amount, gasFee and txFee are BigNumber objects.
+
+### subscribeFunds(callback)
+Subscribe funds, notify if change, return last 100 records.
+```JavaScript
+  client.subscribeFunds(funds => {
+    console.log(JSON.stringify(funds));
+  });
+```
+Result
+```JSON
+[
+  {
+    "id":192,
+    "status":"done",
+    "txHash":"0x4dbc49ae4735b1c230244d41377cf6aeccd70c5181df048e3be8306af8a487e6",
+    "type":"withdraw",
+    "amount":"0.0099",
+    "token":"ETH",
+    "fee":"ETH",
+    "withdrawFee":"0.0001",
+    "timestamp":1537434044,
+    "blockId":null
+  },
+  {
+    "id":191,
+    "status":"done",
+    "txHash":"0x8435bf9f69dd908373d50353ebab343b625527cd8ea44532eb01c8b0a5642879",
+    "type":"withdraw",
+    "amount":"0.001",
+    "token":"ETH",
+    "fee":"JOY",
+    "withdrawFee":"0.809841",
+    "timestamp":1537433888,
+    "blockId":null
+  }
+]
+```
+* amount and withdrawFee are BigNumber objects.
 
 ### buy({ pair, price, amount, fee })
 Place buying order
@@ -246,3 +284,20 @@ Options and result are same with buy. One extra options
 |Name|Required|Description|
 |---|---|---|
 |side|O|`buy` or `sell`|
+
+### withdraw({ token, amount, fee })
+Place selling order
+```JavaScript
+  // withdraw
+  await client.withdraw({
+    token: 'ETH',
+    amount: 0.01,
+    fee: 'eth'
+  });
+```
+Options
+|Name|Required|Description|
+|---|---|---|
+|token|O|Token to withdraw|
+|amount|O|Amount to withdraw|
+|fee|O|Specify how to pay fee. `eth` or `joy`.|
