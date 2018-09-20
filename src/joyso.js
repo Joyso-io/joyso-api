@@ -95,6 +95,7 @@ class Joyso {
   }
 
   createWithdraw({ token, amount, fee }) {
+    this.validateWithdraw(price, amount, fee, side);
     let tokenFee, paymentMethod;
     if (fee === 'token') {
       tokenFee = this.tokenManager.symbolMap[token];
@@ -107,6 +108,9 @@ class Joyso {
       paymentMethod = 0;
     }
     token = this.tokenManager.symbolMap[token];
+    if (!token) {
+      throw new Error('invalid token');
+    }
     const withdrawFee = new BigNumber(tokenFee.withdraw_fee);
     let rawAmount = this.tokenManager.toRawAmount(token, amount);
     if (token === tokenFee) {
@@ -181,13 +185,25 @@ class Joyso {
     return baseAmount.div(quoteAmount).round(9);
   }
 
+  validateAmount(amount) {
+    const lte = amount instanceof BigNumber ? amount.lte(0) : amount <= 0;;
+    if (lte) {
+      throw new Error('invalid amount');
+    }
+  }
+
+  validateWithdraw(amount, fee) {
+    this.validateAmount(amount);
+    if (fee !== 'eth' && fee !== 'joy' && fee !== 'token') {
+      throw new Error('invalid fee');
+    }
+  }
+
   validateOrder(price, amount, fee, side) {
+    this.validateAmount(amount);
     const v = new BigNumber(price).mul(1000000000);
     if (!v.truncated().equals(v)) {
       throw new Error('invalid price');
-    }
-    if (amount <= 0) {
-      throw new Error('invalid amount');
     }
     if (fee !== 'base' && fee !== 'joy' && fee !== 'eth') {
       throw new Error('invalid fee');
