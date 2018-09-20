@@ -25,9 +25,9 @@ async function start() {
 ### subscribeOrderBook(pair, callback)
 Subscribe order book, notify if change.
 ```JavaScript
-  client.subscribeOrderBook('ETH_JOY', orderBook => {
-    console.log(JSON.stringify(orderBook));
-  });
+client.subscribeOrderBook('ETH_JOY', orderBook => {
+  console.log(JSON.stringify(orderBook));
+});
 ```
 Result:
 ```JSON
@@ -59,9 +59,9 @@ Result:
 ### subscribeTrades(pair, callback)
 Subscribe market trades, notify if change, return last 100 records.
 ```JavaScript
-  client.subscribeTrades('ETH_JOY', trades => {
-    console.log(JSON.stringify(trades.slice(0, 2)));
-  });
+client.subscribeTrades('ETH_JOY', trades => {
+  console.log(JSON.stringify(trades.slice(0, 2)));
+});
 ```
 Result
 ```JSON
@@ -87,9 +87,9 @@ Result
 ### subscribeBalances(callback)
 Subscribe balances, notify if change.
 ```JavaScript
-  client.subscribeBalances(balances => {
-    console.log(JSON.stringify(balances));
-  });
+client.subscribeBalances(balances => {
+  console.log(JSON.stringify(balances));
+});
 ```
 Result
 ```JSON
@@ -109,9 +109,9 @@ Result
 ### subscribeOrders(callback)
 Subscribe open orders, notify if change.
 ```JavaScript
-  client.subscribeOrders(orders => {
-    console.log(JSON.stringify(orders));
-  });
+client.subscribeOrders(orders => {
+  console.log(JSON.stringify(orders));
+});
 ```
 Result
 ```JSON
@@ -142,9 +142,9 @@ Result
 ### subscribeMyTrades(callback)
 Subscribe my trades, notify if change, return last 100 records.
 ```JavaScript
-  client.subscribeMyTrades(trades => {
-    console.log(JSON.stringify(trades.slice(0, 2)));
-  });
+client.subscribeMyTrades(trades => {
+  console.log(JSON.stringify(trades.slice(0, 2)));
+});
 ```
 Result
 ```JSON
@@ -180,9 +180,9 @@ Result
 ### subscribeFunds(callback)
 Subscribe funds, notify if change, return last 100 records.
 ```JavaScript
-  client.subscribeFunds(funds => {
-    console.log(JSON.stringify(funds));
-  });
+client.subscribeFunds(funds => {
+  console.log(JSON.stringify(funds));
+});
 ```
 Result
 ```JSON
@@ -214,27 +214,30 @@ Result
 ]
 ```
 * amount and withdrawFee are BigNumber objects.
+* status could be `pending`, `processing`, `done` or `failed`
+* type could be `deposit`, `withdraw` or `transfer`
 
 ### buy({ pair, price, amount, fee })
 Place buying order
 ```JavaScript
-  try {
-    let order = await client.buy({
-      pair: 'ETH_JOY',
-      price: '0.000123481',
-      amount: 1,
-      fee: 'base'
-    });
-    console.log(JSON.stringify(order));
-  } catch (e) {
-    if (e.statusCode === 400) {
-      console.log(e.error.error);
-    } else {
-      console.log(e.message);
-    }
+try {
+  let order = await client.buy({
+    pair: 'ETH_JOY',
+    price: '0.000123481',
+    amount: 1,
+    fee: 'base'
+  });
+  console.log(JSON.stringify(order));
+} catch (e) {
+  if (e.statusCode === 400) {
+    console.log(e.error.error);
+  } else {
+    console.log(e.message);
   }
+}
 ```
 Options
+
 |Name|Required|Description|
 |---|---|---|
 |pair|O|Pair to trade, format is `${base}_${quote}`, eg: ETH_JOY|
@@ -260,27 +263,28 @@ Result
 ### sell({ pair, price, amount, fee })
 Place selling order
 ```JavaScript
-  let order = await client.sell({
-    pair: 'ETH_JOY',
-    price: '0.000123481',
-    amount: 100,
-    fee: 'base'
-  });
+let order = await client.sell({
+  pair: 'ETH_JOY',
+  price: '0.000123481',
+  amount: 100,
+  fee: 'base'
+});
 ```
 Options and result are same with buy.
 
 ### trade({ pair, price, amount, fee, side })
 Place selling order
 ```JavaScript
-  let order = await client.trade({
-    side: 'buy',
-    pair: 'ETH_JOY',
-    price: '0.000123481',
-    amount: 100,
-    fee: 'joy'
-  });
+let order = await client.trade({
+  side: 'buy',
+  pair: 'ETH_JOY',
+  price: '0.000123481',
+  amount: 100,
+  fee: 'joy'
+});
 ```
 Options and result are same with buy. One extra options
+
 |Name|Required|Description|
 |---|---|---|
 |side|O|`buy` or `sell`|
@@ -288,16 +292,22 @@ Options and result are same with buy. One extra options
 ### withdraw({ token, amount, fee })
 Place selling order
 ```JavaScript
-  // withdraw
-  await client.withdraw({
-    token: 'ETH',
-    amount: 0.01,
-    fee: 'eth'
-  });
+await client.withdraw({
+  token: 'ETH',
+  amount: 0.01,
+  fee: 'eth'
+});
 ```
 Options
+
 |Name|Required|Description|
 |---|---|---|
 |token|O|Token to withdraw|
 |amount|O|Amount to withdraw|
 |fee|O|Specify how to pay fee. `eth` or `joy`.|
+
+## License
+The project is released under the [MIT license](http://www.opensource.org/licenses/MIT).
+
+## Contact
+The project's website is located at https://github.com/Joyso-io/joyso-api

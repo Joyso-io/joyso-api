@@ -1,6 +1,6 @@
 {
   "name": "joyso",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "JOYSO API client library for trading.",
   "main": "src/client.js",
   "scripts": {
@@ -14,5 +14,18 @@
     "request": "^2.88.0",
     "request-promise": "^4.2.2",
     "ws": "^6.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Joyso-io/joyso-api.git"
+  },
+  "keywords": [
+    "JOYSO",
+    "api",
+    "trading"
+  ],
+  "homepage": "https://github.com/Joyso-io/joyso-api",
+  "bugs": {
+    "url": "https://github.com/Joyso-io/joyso-api/issues"
+  },
 }
