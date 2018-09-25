@@ -51,7 +51,7 @@ class Funds {
   }
 
   unsubscribe() {
-    this.cable.subscription.unsubscribe();
+    this.cable.unsubscribe();
     delete this.cable;
     this.balances = {};
   }

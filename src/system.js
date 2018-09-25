@@ -20,7 +20,7 @@ class System {
   }
 
   unsubscribe() {
-    this.cable.subscription.unsubscribe();
+    this.cable.unsubscribe();
     delete this.cable;
   }
 
