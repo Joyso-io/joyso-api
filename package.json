@@ -2,7 +2,7 @@
   "name": "joyso",
   "version": "0.1.0",
   "description": "JOYSO API client library for trading.",
-  "main": "src/client.js",
+  "main": "src/joyso.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
