@@ -25,7 +25,7 @@ async function start() {
 ### subscribeOrderBook(pair, callback)
 Subscribe order book, notify if change.
 ```JavaScript
-joyso.subscribeOrderBook('ETH_JOY', orderBook => {
+const subscription = joyso.subscribeOrderBook('ETH_JOY', orderBook => {
   console.log(JSON.stringify(orderBook));
 });
 ```
@@ -59,7 +59,7 @@ Result:
 ### subscribeTrades(pair, callback)
 Subscribe market trades, notify if change, return last 100 records.
 ```JavaScript
-joyso.subscribeTrades('ETH_JOY', trades => {
+const subscription = joyso.subscribeTrades('ETH_JOY', trades => {
   console.log(JSON.stringify(trades.slice(0, 2)));
 });
 ```
@@ -87,7 +87,7 @@ Result
 ### subscribeBalances(callback)
 Subscribe balances, notify if change.
 ```JavaScript
-joyso.subscribeBalances(balances => {
+const subscription = joyso.subscribeBalances(balances => {
   console.log(JSON.stringify(balances));
 });
 ```
@@ -109,7 +109,7 @@ Result
 ### subscribeOrders(callback)
 Subscribe open orders, notify if change.
 ```JavaScript
-joyso.subscribeOrders(orders => {
+const subscription = joyso.subscribeOrders(orders => {
   console.log(JSON.stringify(orders));
 });
 ```
@@ -142,7 +142,7 @@ Result
 ### subscribeMyTrades(callback)
 Subscribe my trades, notify if change, return last 100 records.
 ```JavaScript
-joyso.subscribeMyTrades(trades => {
+const subscription = joyso.subscribeMyTrades(trades => {
   console.log(JSON.stringify(trades.slice(0, 2)));
 });
 ```
@@ -180,7 +180,7 @@ Result
 ### subscribeFunds(callback)
 Subscribe funds, notify if change, return last 100 records.
 ```JavaScript
-joyso.subscribeFunds(funds => {
+const subscription = joyso.subscribeFunds(funds => {
   console.log(JSON.stringify(funds));
 });
 ```
@@ -305,6 +305,13 @@ Options
 |token|O|Token to withdraw|
 |amount|O|Amount to withdraw|
 |fee|O|Specify how to pay fee. `eth` or `joy`.|
+
+### subscription.unsubscribe()
+Unsubscribe
+```JavaScript
+subscription.unsubscribe();
+```
+
 
 ## License
 The project is released under the [MIT license](http://www.opensource.org/licenses/MIT).

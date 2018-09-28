@@ -1,5 +1,12 @@
 # Change Log
 
+## v0.1.3 / 2018-09-28
+### Added
+- timestamp to trades and my trades.
+
+### Fixed
+- order book bug
+
 ## v0.1.2 / 2018-09-25
 ### Fixed
 - unsubscribe bug

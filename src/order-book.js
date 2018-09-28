@@ -19,6 +19,9 @@ class OrderBook {
     }, {
       connected: () => this.update(),
       received: data => {
+        if (!this.orderBook) {
+          return;
+        }
         ['buy', 'sell'].forEach(type => {
           Object.keys(data[type]).forEach(price => {
             if (data[type][price] !== '0') {

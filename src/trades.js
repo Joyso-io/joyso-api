@@ -52,7 +52,8 @@ class Trades {
         side: trade.is_buy ? 'sell' : 'buy',
         price: baseAmount.div(quoteAmount).round(9).toNumber(),
         amount: quoteAmount,
-        pair: `${base.symbol}_${quote.symbol}`
+        pair: `${base.symbol}_${quote.symbol}`,
+        timestamp: trade.timestamp
       };
     });
   }

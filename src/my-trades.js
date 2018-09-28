@@ -84,7 +84,8 @@ class MyTrades {
         pair: `${base.symbol}_${quote.symbol}`,
         fee: tokenFee.symbol,
         gasFee: gasFee,
-        txFee: txFee
+        txFee: txFee,
+        timestamp: trade.timestamp
       };
     });
   }
