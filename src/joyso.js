@@ -40,8 +40,9 @@ class Joyso {
     this.cable = ActionCable.createConsumer(this.wsUrl, this.origin);
     this.system = new System(this);
     const json = await this.system.update();
-    this.tokenManager = new TokenManager(json.tokens);
     this.system.subscribe();
+    this.tokenManager = new TokenManager(this, json.tokens);
+    this.tokenManager.subscribe();
     await this.updateAccessToken();
     this.orders = new Orders({
       client: this,
@@ -87,7 +88,7 @@ class Joyso {
     } catch (e) {
       if (!options.retry && e.statusCode === 400 && e.error.fee_changed) {
         options.retry = true;
-        await this.system.update();
+        await this.tokenManager.refresh();
         return this.withdraw(options);
       }
       throw e;
@@ -95,7 +96,7 @@ class Joyso {
   }
 
   createWithdraw({ token, amount, fee }) {
-    this.validateWithdraw(price, amount, fee, side);
+    this.validateWithdraw(amount, fee);
     let tokenFee, paymentMethod;
     if (fee === 'token') {
       tokenFee = this.tokenManager.symbolMap[token];
@@ -111,7 +112,7 @@ class Joyso {
     if (!token) {
       throw new Error('invalid token');
     }
-    const withdrawFee = new BigNumber(tokenFee.withdraw_fee);
+    const withdrawFee = tokenFee.withdrawFee;
     let rawAmount = this.tokenManager.toRawAmount(token, amount);
     if (token === tokenFee) {
       rawAmount = rawAmount.sub(withdrawFee);
@@ -169,7 +170,7 @@ class Joyso {
     } catch (e) {
       if (!options.retry && e.statusCode === 400 && e.error.fee_changed) {
         options.retry = true;
-        await this.system.update();
+        await this.tokenManager.refresh();
         return this.trade(options);
       }
       throw e;
@@ -248,7 +249,7 @@ class Joyso {
         takerFee = Math.floor(takerFee / 2);
         makerFee = Math.floor(makerFee / 2);
       }
-      feePrice = new BigNumber(tokenFee.price).mul(10000000).truncated();
+      feePrice = tokenFee.price.mul(10000000).truncated();
       if (feePrice.gt(100000000)) {
         feePrice = new BigNumber(100000000);
       } else if (feePrice.lt(1)) {
@@ -258,7 +259,7 @@ class Joyso {
       tokenFee = this.tokenManager.eth;
       feePrice = 0;
     }
-    const gasFee = new BigNumber(tokenFee.gas_fee);
+    const gasFee = tokenFee.gasFee;
 
     let amountSell, amountBuy, tokenSell, tokenBuy;
     if (side === 'buy') {
