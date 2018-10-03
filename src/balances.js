@@ -15,6 +15,9 @@ class Balances {
       contract: this.client.system.contract.substr(2),
       user: this.address.substr(2)
     }, {
+      connected: async () => {
+        await this.get();
+      },
       received: balances => {
         balances.forEach(balance => this.updateBalance(balance));
         this.onReceived(this.balances);
@@ -23,9 +26,7 @@ class Balances {
   }
 
   unsubscribe() {
-    this.cable.unsubscribe();
-    delete this.cable;
-    this.balances = {};
+    this.onReceived = (() => {});
   }
 
   updateBalance(balance) {

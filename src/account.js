@@ -14,6 +14,9 @@ class Account {
       contract: this.client.system.contract.substr(2),
       address: this.address.substr(2)
     }, {
+      connected: async () => {
+        await this.update();
+      },
       received: data => {
         switch (data.e) {
           case 'update':
@@ -22,6 +25,7 @@ class Account {
         }
       }
     });
+    return this.cable;
   }
 
   unsubscribe() {
@@ -30,8 +34,8 @@ class Account {
   }
 
   updateConfig(json) {
-    this.advanceReal = json.advanceReal;
-    this.advanceInOrder = json.advanceInOrder;
+    this.advanceReal = json.advance_real;
+    this.advanceInOrder = json.advance_in_order;
   }
 
   async update() {
