@@ -15,11 +15,6 @@ class Balances {
       contract: this.client.system.contract.substr(2),
       user: this.address.substr(2)
     }, {
-      connected: async () => {
-        const json = await this.get();
-        json.balances.forEach(balance => this.updateBalance(balance));
-        this.onReceived(this.balances);
-      },
       received: balances => {
         balances.forEach(balance => this.updateBalance(balance));
         this.onReceived(this.balances);
@@ -43,13 +38,14 @@ class Balances {
     }
   }
 
-  get() {
-    return rp(this.client.createRequest('balances', {
+  async get() {
+    const json = await rp(this.client.createRequest('balances', {
       qs: {
         contract: this.client.system.contract.substr(2),
         user: this.address.substr(2)
       }
     }));
+    json.balances.forEach(balance => this.updateBalance(balance));
   }
 }
 
