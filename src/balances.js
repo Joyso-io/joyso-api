@@ -19,6 +19,7 @@ class Balances {
       }, {
         connected: async () => {
           await this.get();
+          this.onReceived(this.balances);
           if (this.init) {
             this.init = false;
             resolve();
