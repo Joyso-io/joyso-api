@@ -7,21 +7,28 @@ class Balances {
     this.address = options.address;
     this.onReceived = options.onReceived || (() => {});
     this.balances = {};
+    this.init = true;
   }
 
   subscribe() {
-    this.cable = this.client.cable.subscriptions.create({
-      channel: 'BalancesChannel',
-      contract: this.client.system.contract.substr(2),
-      user: this.address.substr(2)
-    }, {
-      connected: async () => {
-        await this.get();
-      },
-      received: balances => {
-        balances.forEach(balance => this.updateBalance(balance));
-        this.onReceived(this.balances);
-      }
+    return new Promise(resolve => {
+      this.cable = this.client.cable.subscriptions.create({
+        channel: 'BalancesChannel',
+        contract: this.client.system.contract.substr(2),
+        user: this.address.substr(2)
+      }, {
+        connected: async () => {
+          await this.get();
+          if (this.init) {
+            this.init = false;
+            resolve();
+          }
+        },
+        received: balances => {
+          balances.forEach(balance => this.updateBalance(balance));
+          this.onReceived(this.balances);
+        }
+      });
     });
   }
 

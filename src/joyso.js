@@ -45,11 +45,9 @@ class Joyso {
     this.tokenManager = new TokenManager(this, json.tokens);
     this.tokenManager.subscribe();
     this.account = new Account(this, this.address);
-    await this.account.update();
-    this.account.subscribe();
+    await this.account.subscribe();
     this.balances = new Balances({ client: this, address: this.address });
-    await this.balances.get();
-    this.balances.subscribe();
+    await this.balances.subscribe();
     await this.updateAccessToken();
     this.orders = new Orders({
       client: this,
