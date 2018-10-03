@@ -25,7 +25,6 @@ class Account {
         }
       }
     });
-    return this.cable;
   }
 
   unsubscribe() {
