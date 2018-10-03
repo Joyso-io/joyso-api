@@ -11,6 +11,7 @@ const OrderBook = require('./order-book');
 const Trades = require('./trades');
 const MyTrades = require('./my-trades');
 const Funds = require('./funds');
+const Account = require('./account');
 
 BigNumber.config({ DECIMAL_PLACES: 36 });
 
@@ -43,6 +44,10 @@ class Joyso {
     this.system.subscribe();
     this.tokenManager = new TokenManager(this, json.tokens);
     this.tokenManager.subscribe();
+    this.account = new Account(this, this.address);
+    await this.account.subscribe();
+    this.balances = new Balances({ client: this, address: this.address });
+    await this.balances.subscribe();
     await this.updateAccessToken();
     this.orders = new Orders({
       client: this,
@@ -95,6 +100,15 @@ class Joyso {
     }
   }
 
+  repayWithdrawFee(token) {
+    if (this.account.advanceReal !== 0 && this.account.advanceInOrder === 0) {
+      const ratio = this.tokenManager.eth.withdrawFee.div(token.withdrawFee);
+      return new BigNumber(this.accountService.advanceReal).div(ratio).add(token.withdrawFee);
+    } else {
+      return token.withdrawFee;
+    }
+  }
+
   createWithdraw({ token, amount, fee }) {
     this.validateWithdraw(amount, fee);
     let tokenFee, paymentMethod;
@@ -112,7 +126,7 @@ class Joyso {
     if (!token) {
       throw new Error('invalid token');
     }
-    const withdrawFee = tokenFee.withdrawFee;
+    const withdrawFee = this.repayWithdrawFee(tokenFee);
     let rawAmount = this.tokenManager.toRawAmount(token, amount);
     if (token === tokenFee) {
       rawAmount = rawAmount.sub(withdrawFee);
@@ -214,6 +228,28 @@ class Joyso {
     }
   }
 
+  repayGasFee(token) {
+    const ratio = new BigNumber(this.tokenManager.eth.gasFee).div(token.gasFee);
+    return new BigNumber(this.account.advanceReal).div(ratio).add(token.gasFee);
+  }
+
+  receivableGasFee(side, paymentMethod, token) {
+    let ethBalance, gasFee;
+    ethBalance = this.balances.balances.ETH.available || 0;
+    gasFee = this.tokenManager.eth.gasFee;
+
+    if (
+      side !== 'buy' && paymentMethod === 'eth' && gasFee.gt(ethBalance)
+      && this.account.advanceReal === 0 && this.account.advanceInOrder === 0
+    ) {
+      return new BigNumber(0);
+    } else if (this.account.advanceReal !== 0 && this.account.advanceInOrder === 0) {
+      return this.repayGasFee(token);
+    } else {
+      return token.gasFee;
+    }
+  }
+
   createOrder({ pair, price, amount, fee, side }) {
     this.validateOrder(price, amount, fee, side);
     const [base, quote]= this.tokenManager.getPair(pair);
@@ -259,7 +295,7 @@ class Joyso {
       tokenFee = this.tokenManager.eth;
       feePrice = 0;
     }
-    const gasFee = tokenFee.gasFee;
+    const gasFee = this.receivableGasFee(side, fee, tokenFee);
 
     let amountSell, amountBuy, tokenSell, tokenBuy;
     if (side === 'buy') {
@@ -394,15 +430,8 @@ class Joyso {
     if (!this.connected) {
       throw new Error('client is not connected');
     }
-    if (this.balances) {
-      this.balances.unsubscribe();
-    }
-    this.balances = new Balances({
-      client: this,
-      address: this.address,
-      onReceived: callback
-    });
-    this.balances.subscribe();
+    this.balances.onReceived = callback;
+    this.balances.onReceived(this.balances.balances);
     return this.balances;
   }
 
