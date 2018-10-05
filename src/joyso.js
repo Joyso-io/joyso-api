@@ -13,7 +13,7 @@ const MyTrades = require('./my-trades');
 const Funds = require('./funds');
 const Account = require('./account');
 
-BigNumber.config({ DECIMAL_PLACES: 36 });
+BigNumber.config({ DECIMAL_PLACES: 36, ROUNDING_MODE: 1 });
 
 const keys = {};
 
@@ -103,7 +103,7 @@ class Joyso {
   repayWithdrawFee(token) {
     if (this.account.advanceReal !== 0 && this.account.advanceInOrder === 0) {
       const ratio = this.tokenManager.eth.withdrawFee.div(token.withdrawFee);
-      return new BigNumber(this.accountService.advanceReal).div(ratio).add(token.withdrawFee);
+      return new BigNumber(this.account.advanceReal).div(ratio).truncated().add(token.withdrawFee);
     } else {
       return token.withdrawFee;
     }
@@ -230,7 +230,7 @@ class Joyso {
 
   repayGasFee(token) {
     const ratio = new BigNumber(this.tokenManager.eth.gasFee).div(token.gasFee);
-    return new BigNumber(this.account.advanceReal).div(ratio).add(token.gasFee);
+    return new BigNumber(this.account.advanceReal).div(ratio).truncated().add(token.gasFee);
   }
 
   receivableGasFee(side, paymentMethod, token) {
@@ -239,7 +239,7 @@ class Joyso {
     gasFee = this.tokenManager.eth.gasFee;
 
     if (
-      side !== 'buy' && paymentMethod === 'eth' && gasFee.gt(ethBalance)
+      side !== 'buy' && paymentMethod === 'base' && gasFee.gt(ethBalance)
       && this.account.advanceReal === 0 && this.account.advanceInOrder === 0
     ) {
       return new BigNumber(0);
