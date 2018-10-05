@@ -99,7 +99,7 @@ const WebSocket = require('ws');
           if (this.isRunning()) {
             this.stoppedAt = now();
             this.stopPolling();
-            document.removeEventListener("visibilitychange", this.visibilityDidChange);
+            // document.removeEventListener("visibilitychange", this.visibilityDidChange);
             return ActionCable.log("ConnectionMonitor stopped");
           }
         };

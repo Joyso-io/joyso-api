@@ -64,6 +64,11 @@ class Joyso {
     this.connected = true;
   }
 
+  async disconnect() {
+    this.cable.disconnect();
+    this.connected = false;
+  }
+
   async updateAccessToken() {
     const nonce = Math.floor(Date.now() / 1000);
     const raw = `joyso${nonce}`;
@@ -235,7 +240,7 @@ class Joyso {
 
   receivableGasFee(side, paymentMethod, token) {
     let ethBalance, gasFee;
-    ethBalance = this.balances.balances.ETH.available || 0;
+    ethBalance = this.tokenManager.toRawAmount(this.tokenManager.eth, this.balances.balances.ETH.available || 0);
     gasFee = this.tokenManager.eth.gasFee;
 
     if (

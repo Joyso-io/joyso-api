@@ -9,6 +9,8 @@ class Trades {
     this.onReceived = options.onReceived || (() => {});
     this.onUnsubscribe = options.onUnsubscribe || (() => {});
     this.trades = [];
+    this.requesting = 0;
+    this.requestId = 0;
   }
 
   subscribe() {
@@ -19,7 +21,10 @@ class Trades {
       token: this.quote.address.substr(2)
     }, {
       connected: () => this.update(),
-      received: () => this.update()
+      received: () => {
+        ++this.requestId;
+        this.update();
+      }
     });
   }
 
@@ -30,6 +35,10 @@ class Trades {
   }
 
   async update() {
+    if (this.requesting) {
+      return;
+    }
+    this.requesting = this.requestId;
     const after = this.trades.length ? this.trades[0].id : null;
     const json = await this.get(after);
     const trades = this.convert(json.trades, false);
@@ -39,6 +48,12 @@ class Trades {
       this.trades = trades;
     }
     this.onReceived(this.trades);
+    if (this.requesting !== this.requestId) {
+      this.requesting = 0;
+      this.update();
+    } else {
+      this.requesting = 0;
+    }
   }
 
   convert(trades) {

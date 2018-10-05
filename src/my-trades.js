@@ -10,6 +10,8 @@ class MyTrades {
     this.address = options.address;
     this.onReceived = (() => {});
     this.trades = [];
+    this.requesting = 0;
+    this.requestId = 0;
   }
 
   subscribe() {
@@ -29,6 +31,7 @@ class MyTrades {
       received: data => {
         switch (data.e) {
           case 'new':
+            ++this.requestId;
             return this.update();
           case 'update':
             const trade = this.trades.find(t => t.id === data.data.id);
@@ -54,6 +57,10 @@ class MyTrades {
   }
 
   async update() {
+    if (this.requesting) {
+      return;
+    }
+    this.requesting = this.requestId;
     const after = this.trades.length ? this.trades[0].id : null;
     const json = await this.get(after);
     const trades = this.convert(json.trades, true);
@@ -63,6 +70,12 @@ class MyTrades {
       this.trades = trades;
     }
     this.onReceived(this.trades);
+    if (this.requesting !== this.requestId) {
+      this.requesting = 0;
+      this.update();
+    } else {
+      this.requesting = 0;
+    }
   }
 
   convert(trades) {

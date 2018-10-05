@@ -11,6 +11,8 @@ class Funds {
     this.address = options.address;
     this.onReceived = (() => {});
     this.funds = [];
+    this.requesting = 0;
+    this.requestId = 0;
   }
 
   subscribe() {
@@ -31,6 +33,7 @@ class Funds {
       received: data => {
         switch (data.e) {
           case 'new':
+            ++this.requestId;
             this.update();
             break;
           case 'update':
@@ -57,6 +60,10 @@ class Funds {
   }
 
   async update() {
+    if (this.requesting) {
+      return;
+    }
+    this.requesting = this.requestId;
     const after = this.funds.length ? this.funds[0].id : null;
     const json = await this.get(after);
     const funds = this.convert(json.funds, true);
@@ -66,6 +73,12 @@ class Funds {
       this.funds = funds;
     }
     this.onReceived(this.funds);
+    if (this.requesting !== this.requestId) {
+      this.requesting = 0;
+      this.update();
+    } else {
+      this.requesting = 0;
+    }
   }
 
   convert(funds) {

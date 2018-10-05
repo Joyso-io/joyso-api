@@ -9,6 +9,8 @@ class Orders {
     this.address = options.address;
     this.onReceived = (() => {});
     this.orders = [];
+    this.requesting = 0;
+    this.requestId = 0;
   }
 
   subscribe() {
@@ -24,6 +26,7 @@ class Orders {
       received: data => {
         switch (data.e) {
           case 'new':
+            ++this.requestId;
             return this.update();
           case 'update':
             const order = this.orders.find(t => t.id === data.data.id);
@@ -52,6 +55,10 @@ class Orders {
   }
 
   async update() {
+    if (this.requesting) {
+      return;
+    }
+    this.requesting = this.requestId;
     const after = this.orders.length ? this.orders[0].id : null;
     const result = await this.get(after);
     const orders = this.convert(result.orders);
@@ -61,6 +68,12 @@ class Orders {
       this.orders = orders;
     }
     this.onReceived(this.orders);
+    if (this.requesting !== this.requestId) {
+      this.requesting = 0;
+      this.update();
+    } else {
+      this.requesting = 0;
+    }
   }
 
   convert(orders) {
