@@ -307,7 +307,7 @@ Options
 |fee|O|Specify how to pay fee. `eth` or `joy`.|
 
 ### disconnect()
-Disconnect
+Disconnect from JOYSO.
 
 ### subscription.unsubscribe()
 Unsubscribe

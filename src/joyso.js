@@ -27,7 +27,6 @@ class Joyso {
     }
     this.keyIndex = Object.keys(keys).length;
     keys[this.keyIndex] = key;
-    this.node = options.node;
     this.address = `0x${ethUtil.privateToAddress(key).toString('hex')}`;
     this.orderBooks = {};
     this.trades = {};
@@ -66,7 +65,9 @@ class Joyso {
 
   async disconnect() {
     this.cable.disconnect();
+    clearTimeout(this.timer);
     this.connected = false;
+    delete this.accessToken;
   }
 
   async updateAccessToken() {

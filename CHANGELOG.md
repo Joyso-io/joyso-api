@@ -1,5 +1,9 @@
 # Change Log
 
+## v0.2.1 / 2018-10-08
+### Fixed
+- stop timer after disconnect.
+
 ## v0.2.0 / 2018-10-08
 ### Added
 - gas advance feature.
