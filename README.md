@@ -306,6 +306,9 @@ Options
 |amount|O|Amount to withdraw|
 |fee|O|Specify how to pay fee. `eth` or `joy`.|
 
+### disconnect()
+Disconnect
+
 ### subscription.unsubscribe()
 Unsubscribe
 ```JavaScript

@@ -1,5 +1,13 @@
 # Change Log
 
+## v0.2.0 / 2018-10-08
+### Added
+- gas advance feature.
+- disconnect method.
+
+### Fixed
+- duplicate results.
+
 ## v0.1.4 / 2018-10-01
 ### Fixed
 - gas fee changed issue.

@@ -1,6 +1,6 @@
 {
   "name": "joyso",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "JOYSO API client library for trading.",
   "main": "src/joyso.js",
   "scripts": {
