@@ -17,8 +17,8 @@ class Trades {
     this.cable = this.client.cable.subscriptions.create({
       channel: 'TradesChannel',
       contract: this.client.system.contract.substr(2),
-      base: this.base.address.substr(2),
-      token: this.quote.address.substr(2)
+      token: this.base.address.substr(2),
+      base: this.quote.address.substr(2)
     }, {
       connected: () => this.update(),
       received: () => {
@@ -58,15 +58,15 @@ class Trades {
 
   convert(trades) {
     return trades.map(trade => {
-      const base = this.client.tokenManager.addressMap[`0x${trade.token_base}`],
-        quote = this.client.tokenManager.addressMap[`0x${trade.token_target}`],
-        baseAmount = this.client.tokenManager.toAmount(base, trade.amount_base),
-        quoteAmount = this.client.tokenManager.toAmount(quote, trade.amount_target);
+      const quote = this.client.tokenManager.addressMap[`0x${trade.token_base}`],
+        base = this.client.tokenManager.addressMap[`0x${trade.token_target}`],
+        baseAmount = this.client.tokenManager.toAmount(base, trade.amount_target),
+        quoteAmount = this.client.tokenManager.toAmount(quote, trade.amount_base);
       return {
         id: trade.id,
         side: trade.is_buy ? 'sell' : 'buy',
-        price: baseAmount.div(quoteAmount).round(9).toNumber(),
-        amount: quoteAmount,
+        price: quoteAmount.div(baseAmount).round(9).toNumber(),
+        amount: baseAmount,
         pair: `${base.symbol}_${quote.symbol}`,
         timestamp: trade.timestamp
       };
@@ -76,8 +76,8 @@ class Trades {
   get(after = null) {
     return rp(this.client.createRequest('trades', {
       qs: {
-        base: this.base.address.substr(2),
-        token: this.quote.address.substr(2),
+        token: this.base.address.substr(2),
+        base: this.quote.address.substr(2),
         after: after
       }
     }));

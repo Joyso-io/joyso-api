@@ -197,13 +197,13 @@ class Joyso {
     }
   }
 
-  toAmountByPrice(token, quoteAmount, price, method) {
-    const amount = this.tokenManager.toRawAmount(token, quoteAmount.mul(price), method);
+  toAmountByPrice(token, baseAmount, price, method) {
+    const amount = this.tokenManager.toRawAmount(token, baseAmount.mul(price), method);
     return this.tokenManager.toAmount(token, amount);
   }
 
   toPrice(baseAmount, quoteAmount) {
-    return baseAmount.div(quoteAmount).round(9);
+    return quoteAmount.div(baseAmount).round(9);
   }
 
   validateAmount(amount) {
@@ -234,6 +234,12 @@ class Joyso {
     }
   }
 
+  validatePair(base, quote) {
+    if (!base || !quote || quote !== this.tokenManager.eth) {
+      throw new Error('invalid pair');
+    }
+  }
+
   repayGasFee(token) {
     const ratio = new BigNumber(this.tokenManager.eth.gasFee).div(token.gasFee);
     return new BigNumber(this.account.advanceReal).div(ratio).truncated().add(token.gasFee);
@@ -259,26 +265,24 @@ class Joyso {
   createOrder({ pair, price, amount, fee, side }) {
     this.validateOrder(price, amount, fee, side);
     const [base, quote]= this.tokenManager.getPair(pair);
-    if (!base || !quote || base !== this.tokenManager.eth) {
-      throw new Error('invalid pair');
-    }
-    let quoteAmount = new BigNumber(amount);
+    this.validatePair(base, quote);
+    let baseAmount = new BigNumber(amount);
     let method = side === 'buy' ? 'ceil' : 'floor';
-    let baseAmount = this.toAmountByPrice(base, quoteAmount, price, method);
+    let quoteAmount = this.toAmountByPrice(quote, baseAmount, price, method);
     if (!this.toPrice(baseAmount, quoteAmount).equals(price)) {
       method = method === 'floor' ? 'ceil' : 'floor';
-      baseAmount = this.toAmountByPrice(base, quoteAmount, price, method);
+      quoteAmount = this.toAmountByPrice(quote, baseAmount, price, method);
       if (!this.toPrice(baseAmount, quoteAmount).equals(price)) {
         throw new Error('invalid amount, too small');
       }
     }
-    quoteAmount = this.tokenManager.toRawAmount(quote, quoteAmount);
     baseAmount = this.tokenManager.toRawAmount(base, baseAmount);
+    quoteAmount = this.tokenManager.toRawAmount(quote, quoteAmount);
 
     let takerFee, makerFee, tokenFee, feePrice, custom = false;
-    if (quote.taker_fee && quote.maker_fee) {
-      takerFee = quote.taker_fee;
-      makerFee = quote.maker_fee;
+    if (base.taker_fee && base.maker_fee) {
+      takerFee = base.taker_fee;
+      makerFee = base.maker_fee;
       custom = true;
     } else {
       takerFee = this.system.takerFee;
@@ -305,15 +309,15 @@ class Joyso {
 
     let amountSell, amountBuy, tokenSell, tokenBuy;
     if (side === 'buy') {
-      amountSell = baseAmount;
-      amountBuy = quoteAmount;
-      tokenSell = base.address;
-      tokenBuy = quote.address;
-    } else {
       amountSell = quoteAmount;
       amountBuy = baseAmount;
       tokenSell = quote.address;
       tokenBuy = base.address;
+    } else {
+      amountSell = baseAmount;
+      amountBuy = quoteAmount;
+      tokenSell = base.address;
+      tokenBuy = quote.address;
     }
 
     const createHash = (nonce) => {
@@ -328,7 +332,7 @@ class Joyso {
       input += _.padStart(amountBuy.toString(16), 64, '0');
       input += _.padStart(gasFee.toString(16), 64, '0');
       input += data;
-      input += quote.address.substr(2);
+      input += base.address.substr(2);
       return ethUtil.keccak256(new Buffer(input, 'hex'));
     };
 
@@ -371,9 +375,7 @@ class Joyso {
       throw new Error('client is not connected');
     }
     const [base, quote] = this.tokenManager.getPair(pair);
-    if (!base || !quote || base !== this.tokenManager.eth) {
-      throw new Error('invalid pair');
-    }
+    this.validatePair(base, quote);
     if (this.orderBooks[pair]) {
       this.orderBooks[pair].unsubscribe();
     }
@@ -392,9 +394,7 @@ class Joyso {
       throw new Error('client is not connected');
     }
     const [base, quote] = this.tokenManager.getPair(pair);
-    if (!base || !quote || base !== this.tokenManager.eth) {
-      throw new Error('invalid pair');
-    }
+    this.validatePair(base, quote);
     if (this.trades[pair]) {
       this.trades[pair].unsubscribe();
     }

@@ -80,11 +80,11 @@ class MyTrades {
 
   convert(trades) {
     return trades.map(trade => {
-      const base = this.client.tokenManager.addressMap[`0x${trade.token_base}`],
-        quote = this.client.tokenManager.addressMap[`0x${trade.token_target}`],
+      const quote = this.client.tokenManager.addressMap[`0x${trade.token_base}`],
+        base = this.client.tokenManager.addressMap[`0x${trade.token_target}`],
         tokenFee = this.client.tokenManager.addressMap[`0x${trade.token_fee}`],
-        baseAmount = this.client.tokenManager.toAmount(base, trade.amount_base),
-        quoteAmount = this.client.tokenManager.toAmount(quote, trade.amount_target),
+        baseAmount = this.client.tokenManager.toAmount(base, trade.amount_target),
+        quoteAmount = this.client.tokenManager.toAmount(quote, trade.amount_base),
         gasFee = this.client.tokenManager.toAmount(tokenFee, trade.gas_fee),
         txFee = this.client.tokenManager.toAmount(tokenFee, trade.tx_fee);
       return {
@@ -92,8 +92,8 @@ class MyTrades {
         status: STATUS[trade.status],
         txHash: trade.tx_hash ? `0x${trade.tx_hash}` : null,
         side: trade.is_buy ? 'sell' : 'buy',
-        price: baseAmount.div(quoteAmount).round(9).toNumber(),
-        amount: quoteAmount,
+        price: quoteAmount.div(baseAmount).round(9).toNumber(),
+        amount: baseAmount,
         pair: `${base.symbol}_${quote.symbol}`,
         fee: tokenFee.symbol,
         gasFee: gasFee,

@@ -1,6 +1,9 @@
 # JOYSO
 JOYSO API client library for trading.
 
+## Notice
+v0.3.0 has breaking change of pair format. Change to something like JOY_ETH.
+
 ## Installation
 You can use this command to install:
 
@@ -25,7 +28,7 @@ async function start() {
 ### subscribeOrderBook(pair, callback)
 Subscribe order book, notify if change.
 ```JavaScript
-const subscription = joyso.subscribeOrderBook('ETH_JOY', orderBook => {
+const subscription = joyso.subscribeOrderBook('JOY_ETH', orderBook => {
   console.log(JSON.stringify(orderBook));
 });
 ```
@@ -59,7 +62,7 @@ Result:
 ### subscribeTrades(pair, callback)
 Subscribe market trades, notify if change, return last 100 records.
 ```JavaScript
-const subscription = joyso.subscribeTrades('ETH_JOY', trades => {
+const subscription = joyso.subscribeTrades('JOY_ETH', trades => {
   console.log(JSON.stringify(trades.slice(0, 2)));
 });
 ```
@@ -71,14 +74,14 @@ Result
     "side":"sell",
     "price":0.000123456,
     "amount":"2",
-    "pair":"ETH_JOY"
+    "pair":"JOY_ETH"
   },
   {
     "id":315,
     "side":"buy",
     "price":0.00012347,
     "amount":"1",
-    "pair":"ETH_JOY"
+    "pair":"JOY_ETH"
   }
 ]
 ```
@@ -123,7 +126,7 @@ Result
     "price":0.000123481,
     "amount":"1",
     "fill":"0",
-    "pair":"ETH_T00"
+    "pair":"T00_ETH"
   },
   {
     "id":326,
@@ -132,7 +135,7 @@ Result
     "price":0.000123456,
     "amount":"12",
     "fill":"3.5",
-    "pair":"ETH_JOY"
+    "pair":"JOY_ETH"
   }
 ]
 ```
@@ -156,7 +159,7 @@ Result
     "side":"sell",
     "price":0.000123456,
     "amount":"2",
-    "pair":"ETH_JOY",
+    "pair":"JOY_ETH",
     "fee":"ETH",
     "gasFee":"0",
     "txFee":"2.46912e-7"
@@ -168,7 +171,7 @@ Result
     "side":"sell",
     "price":0.00012347,
     "amount":"1",
-    "pair":"ETH_JOY",
+    "pair":"JOY_ETH",
     "fee":"ETH",
     "gasFee":"0.000105",
     "txFee":"2.4694e-7"
@@ -222,7 +225,7 @@ Place buying order
 ```JavaScript
 try {
   let order = await joyso.buy({
-    pair: 'ETH_JOY',
+    pair: 'JOY_ETH',
     price: '0.000123481',
     amount: 1,
     fee: 'base'
@@ -240,7 +243,7 @@ Options
 
 |Name|Required|Description|
 |---|---|---|
-|pair|O|Pair to trade, format is `${base}_${quote}`, eg: ETH_JOY|
+|pair|O|Pair to trade, format is `${base}_${quote}`, eg: JOY_ETH|
 |price|O|Order price, minimum is 0.000000001|
 |amount|O|Quote amount|
 |fee|O|Specify how to pay fee. `base` or `joy`.|
@@ -254,7 +257,7 @@ Result
   "price":0.000123481,
   "amount":"1",
   "fill":"1",
-  "pair":"ETH_JOY"
+  "pair":"JOY_ETH"
 }
 ```
 * amount and fill are BigNumber objects.
@@ -264,7 +267,7 @@ Result
 Place selling order
 ```JavaScript
 let order = await joyso.sell({
-  pair: 'ETH_JOY',
+  pair: 'JOY_ETH',
   price: '0.000123481',
   amount: 100,
   fee: 'base'
@@ -277,7 +280,7 @@ Place order
 ```JavaScript
 let order = await joyso.trade({
   side: 'buy',
-  pair: 'ETH_JOY',
+  pair: 'JOY_ETH',
   price: '0.000123481',
   amount: 100,
   fee: 'joy'

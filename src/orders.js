@@ -82,14 +82,14 @@ class Orders {
         tokenBuy = this.client.tokenManager.addressMap[`0x${o.token_buy}`],
         amountSell = this.client.tokenManager.toAmount(tokenSell, o.amount_sell),
         amountBuy = this.client.tokenManager.toAmount(tokenBuy, o.amount_buy);
-      const [base, quote] = o.is_buy ? [tokenSell, tokenBuy] : [tokenBuy, tokenSell];
+      const [quote, base] = o.is_buy ? [tokenSell, tokenBuy] : [tokenBuy, tokenSell];
       return {
         id: o.id,
         status: STATUS[o.status],
         side: o.is_buy ? 'buy' : 'sell',
         price: (o.is_buy ? amountSell.div(amountBuy) : amountBuy.div(amountSell)).round(9).toNumber(),
         amount: o.is_buy ? amountBuy : amountSell,
-        fill: this.client.tokenManager.toAmount(quote, o.amount_fill),
+        fill: this.client.tokenManager.toAmount(base, o.amount_fill),
         pair: `${base.symbol}_${quote.symbol}`
       };
     });

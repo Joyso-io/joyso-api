@@ -14,8 +14,8 @@ class OrderBook {
     this.cable = this.client.cable.subscriptions.create({
       channel: 'OrdersChannel',
       contract: this.client.system.contract.substr(2),
-      base: this.base.address.substr(2),
-      token: this.quote.address.substr(2)
+      token: this.base.address.substr(2),
+      base: this.quote.address.substr(2)
     }, {
       connected: () => this.update(),
       received: data => {
@@ -67,17 +67,17 @@ class OrderBook {
   }
 
   convert(key, amount) {
-    const quote = this.client.tokenManager.toAmount(this.quote, amount);
+    const base = this.client.tokenManager.toAmount(this.base, amount);
     const price = parseFloat(key);
-    return { price, amount: quote };
+    return { price, amount: base };
   }
 
   get() {
     return rp(this.client.createRequest('orders', {
       qs: {
         contract: this.client.system.contract.substr(2),
-        base: this.base.address.substr(2),
-        token: this.quote.address.substr(2)
+        token: this.base.address.substr(2),
+        base: this.quote.address.substr(2)
       }
     }));
   }

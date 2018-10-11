@@ -9,12 +9,12 @@ async function start() {
   await joyso.connect();
 
   // subscribe order book, notify if change
-  joyso.subscribeOrderBook('ETH_JOY', orderBook => {
+  joyso.subscribeOrderBook('JOY_ETH', orderBook => {
     console.log(JSON.stringify(orderBook));
   });
 
   // subscribe market trades, notify if change
-  joyso.subscribeTrades('ETH_JOY', trades => {
+  joyso.subscribeTrades('JOY_ETH', trades => {
     console.log(JSON.stringify(trades.slice(0, 5)));
   });
 
@@ -43,7 +43,7 @@ async function start() {
 
     // place buying order
     order = await joyso.buy({
-      pair: 'ETH_JOY',
+      pair: 'JOY_ETH',
       price: '0.000123481',
       amount: 1,
       fee: 'base'
@@ -51,7 +51,7 @@ async function start() {
 
     // place selling order
     order = await joyso.sell({
-      pair: 'ETH_JOY',
+      pair: 'JOY_ETH',
       price: '0.000123481',
       amount: 100,
       fee: 'base'
@@ -60,7 +60,7 @@ async function start() {
     // or place order by trade with side
     order = await joyso.trade({
       side: 'buy',
-      pair: 'ETH_JOY',
+      pair: 'JOY_ETH',
       price: '0.000123481',
       amount: 100,
       fee: 'joy'
