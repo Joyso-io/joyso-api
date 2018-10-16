@@ -45,16 +45,14 @@ async function start() {
     order = await joyso.buy({
       pair: 'JOY_ETH',
       price: '0.000123481',
-      amount: 1,
-      fee: 'base'
+      amount: 1
     });
 
     // place selling order
     order = await joyso.sell({
       pair: 'JOY_ETH',
       price: '0.000123481',
-      amount: 100,
-      fee: 'base'
+      amount: 100
     });
 
     // or place order by trade with side
@@ -63,7 +61,7 @@ async function start() {
       pair: 'JOY_ETH',
       price: '0.000123481',
       amount: 100,
-      fee: 'joy'
+      feeByJoy: true
     });
 
     // cancel order

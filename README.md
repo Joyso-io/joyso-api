@@ -2,7 +2,7 @@
 JOYSO API client library for trading.
 
 ## Notice
-v0.3.0 has breaking change of pair format. Change to something like JOY_ETH.
+v0.3.0 has breaking changes. Please see [CHANGELOG v0.3.0](https://github.com/Joyso-io/joyso-api/blob/master/CHANGELOG.md#v030--2018-10-16)
 
 ## Installation
 You can use this command to install:
@@ -220,7 +220,7 @@ Result
 * status could be `pending`, `processing`, `done` or `failed`
 * type could be `deposit`, `withdraw` or `transfer`
 
-### buy({ pair, price, amount, fee })
+### buy({ pair, price, amount, feeByJoy })
 Place buying order
 ```JavaScript
 try {
@@ -228,7 +228,7 @@ try {
     pair: 'JOY_ETH',
     price: '0.000123481',
     amount: 1,
-    fee: 'base'
+    feeByJoy: true
   });
   console.log(JSON.stringify(order));
 } catch (e) {
@@ -246,7 +246,7 @@ Options
 |pair|O|Pair to trade, format is `${base}_${quote}`, eg: JOY_ETH|
 |price|O|Order price, minimum is 0.000000001|
 |amount|O|Quote amount|
-|fee|O|Specify how to pay fee. `base` or `joy`.|
+|feeByJoy||Specify how to pay fee. `true` will pay by JOY. `false` will pay by quote token(ETH if pair XXX_ETH). Default is `false`|
 
 Result
 ```JSON
@@ -263,27 +263,25 @@ Result
 * amount and fill are BigNumber objects.
 * status could be `active`, `partial` or `complete`
 
-### sell({ pair, price, amount, fee })
+### sell({ pair, price, amount, feeByJoy })
 Place selling order
 ```JavaScript
 let order = await joyso.sell({
   pair: 'JOY_ETH',
   price: '0.000123481',
-  amount: 100,
-  fee: 'base'
+  amount: 100
 });
 ```
 Options and result are same with buy.
 
-### trade({ pair, price, amount, fee, side })
+### trade({ pair, price, amount, feeByJoy, side })
 Place order
 ```JavaScript
 let order = await joyso.trade({
   side: 'buy',
   pair: 'JOY_ETH',
   price: '0.000123481',
-  amount: 100,
-  fee: 'joy'
+  amount: 100
 });
 ```
 Options and result are same with buy. One extra options
@@ -307,7 +305,7 @@ Options
 |---|---|---|
 |token|O|Token to withdraw|
 |amount|O|Amount to withdraw|
-|fee|O|Specify how to pay fee. `eth` or `joy`.|
+|fee|O|Specify how to pay fee. `eth`, `joy` or `token`. `token` can only be used when token is quote token.|
 
 ### disconnect()
 Disconnect from JOYSO.

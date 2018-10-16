@@ -1,9 +1,9 @@
 const BigNumber = require('bignumber.js');
 
 class TokenManager {
-  constructor(client, tokens) {
+  constructor(client, options) {
     this.client = client;
-    this.reload(tokens);
+    this.reload(options);
   }
 
   subscribe() {
@@ -38,14 +38,14 @@ class TokenManager {
 
   async refresh() {
     const json = await this.client.system.update();
-    this.reload(json.tokens);
+    this.reload(json);
   }
 
-  reload(tokens) {
-    this.tokens = tokens;
+  reload(json) {
+    this.tokens = json.tokens;
     this.symbolMap = {};
     this.addressMap = {};
-    tokens.forEach(t => {
+    json.tokens.forEach(t => {
       t.address = `0x${t.address}`;
       if (t.price) {
         t.price = new BigNumber(t.price);
@@ -57,9 +57,19 @@ class TokenManager {
     });
     this.eth = this.symbolMap.ETH;
     this.joy = this.symbolMap.JOY;
+    this.quotes = json.base.map(t => this.addressMap[`0x${t}`]);
+    this.hiddenPairs = {};
+    Object.keys(json.hidden_pairs).forEach(quote => {
+      json.hidden_pairs[quote].forEach(base => {
+        this.hiddenPairs[`${base}_${quote}`] = true;
+      });
+    });
   }
 
   getPair(pair) {
+    if (this.hiddenPairs[pair]) {
+      return [];
+    }
     let [base, quote] = pair.split('_');
     return [this.symbolMap[base], this.symbolMap[quote]];
   }

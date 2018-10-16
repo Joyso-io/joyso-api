@@ -13,8 +13,10 @@ const MyTrades = require('./my-trades');
 const Funds = require('./funds');
 const Account = require('./account');
 
-BigNumber.config({ DECIMAL_PLACES: 36, ROUNDING_MODE: 1 });
+BigNumber.config({ DECIMAL_PLACES: 36 });
 
+const ETH_MAX_FEE_PRICE = new BigNumber('100000000');
+const NON_ETH_MAX_FEE_PRICE = new BigNumber('1000000000000000000000000000');
 const keys = {};
 
 class Joyso {
@@ -41,7 +43,7 @@ class Joyso {
     this.system = new System(this);
     const json = await this.system.update();
     this.system.subscribe();
-    this.tokenManager = new TokenManager(this, json.tokens);
+    this.tokenManager = new TokenManager(this, json);
     this.tokenManager.subscribe();
     this.account = new Account(this, this.address);
     await this.account.subscribe();
@@ -182,16 +184,17 @@ class Joyso {
         body: order
       }));
       this.updateHashTable(order.nonce, hash);
-      order.is_buy = options.side === 'buy';
       order.id = r.order.id;
       order.status = r.order.status;
       order.amount_fill = r.order.amount_fill;
       return this.orders.convert([order])[0];
     } catch (e) {
       if (!options.retry && e.statusCode === 400 && e.error.fee_changed) {
-        options.retry = true;
         await this.tokenManager.refresh();
-        return this.trade(options);
+        if (e.error.length === 1) {
+          options.retry = true;
+          return this.trade(options);
+        }
       }
       throw e;
     }
@@ -220,14 +223,11 @@ class Joyso {
     }
   }
 
-  validateOrder(price, amount, fee, side) {
+  validateOrder(price, amount, side) {
     this.validateAmount(amount);
     const v = new BigNumber(price).mul(1000000000);
     if (!v.truncated().equals(v)) {
       throw new Error('invalid price');
-    }
-    if (fee !== 'base' && fee !== 'joy' && fee !== 'eth') {
-      throw new Error('invalid fee');
     }
     if (side !== 'buy' && side !== 'sell') {
       throw new Error('invalid side');
@@ -235,7 +235,7 @@ class Joyso {
   }
 
   validatePair(base, quote) {
-    if (!base || !quote || quote !== this.tokenManager.eth) {
+    if (!base || !quote || !this.tokenManager.quotes.find(t => t === quote)) {
       throw new Error('invalid pair');
     }
   }
@@ -245,25 +245,24 @@ class Joyso {
     return new BigNumber(this.account.advanceReal).div(ratio).truncated().add(token.gasFee);
   }
 
-  receivableGasFee(side, paymentMethod, token) {
-    let ethBalance, gasFee;
-    ethBalance = this.tokenManager.toRawAmount(this.tokenManager.eth, this.balances.balances.ETH.available || 0);
-    gasFee = this.tokenManager.eth.gasFee;
-
+  receivableGasFee(side, feeByJoy, tokenFee, quote) {
+    let gasFee = quote.gasFee;
+    let baseBalance = this.balances.balances[quote.symbol];
+    baseBalance = this.tokenManager.toRawAmount(quote, baseBalance && baseBalance.available || 0);
     if (
-      side !== 'buy' && paymentMethod === 'base' && gasFee.gt(ethBalance)
+      side !== 'buy' && !feeByJoy && gasFee.gt(baseBalance)
       && this.account.advanceReal === 0 && this.account.advanceInOrder === 0
     ) {
       return new BigNumber(0);
     } else if (this.account.advanceReal !== 0 && this.account.advanceInOrder === 0) {
-      return this.repayGasFee(token);
+      return this.repayGasFee(tokenFee);
     } else {
-      return token.gasFee;
+      return tokenFee.gasFee;
     }
   }
 
-  createOrder({ pair, price, amount, fee, side }) {
-    this.validateOrder(price, amount, fee, side);
+  createOrder({ pair, price, amount, feeByJoy, side }) {
+    this.validateOrder(price, amount, side);
     const [base, quote]= this.tokenManager.getPair(pair);
     this.validatePair(base, quote);
     let baseAmount = new BigNumber(amount);
@@ -289,23 +288,39 @@ class Joyso {
       makerFee = this.system.makerFee;
     }
 
-    if (fee === 'joy') {
+    if (feeByJoy) {
       tokenFee = this.tokenManager.joy;
       if (!custom) {
         takerFee = Math.floor(takerFee / 2);
         makerFee = Math.floor(makerFee / 2);
       }
-      feePrice = tokenFee.price.mul(10000000).truncated();
-      if (feePrice.gt(100000000)) {
-        feePrice = new BigNumber(100000000);
+      feePrice = tokenFee.price;
+      let maxFeePrice, offset;
+      if (quote === this.tokenManager.eth) {
+        maxFeePrice = ETH_MAX_FEE_PRICE;
+        offset = new BigNumber('10000000');
+      } else {
+        const priceToEth = quote.price;
+        if (feePrice && priceToEth) {
+          const decimalsOffset = new BigNumber(10).pow(tokenFee.decimals - quote.decimals);
+          offset = new BigNumber('1000000000000').div(decimalsOffset);
+          feePrice = new BigNumber(feePrice).div(priceToEth);
+        } else {
+          throw new Error('fee price invalid');
+        }
+        maxFeePrice = NON_ETH_MAX_FEE_PRICE;
+      }
+      feePrice = feePrice.mul(offset).truncated();
+      if (feePrice.gt(maxFeePrice)) {
+        feePrice = maxFeePrice;
       } else if (feePrice.lt(1)) {
         feePrice = new BigNumber(1);
       }
     } else {
-      tokenFee = this.tokenManager.eth;
+      tokenFee = quote;
       feePrice = 0;
     }
-    const gasFee = this.receivableGasFee(side, fee, tokenFee);
+    const gasFee = this.receivableGasFee(side, feeByJoy, tokenFee, quote);
 
     let amountSell, amountBuy, tokenSell, tokenBuy;
     if (side === 'buy') {
@@ -321,18 +336,36 @@ class Joyso {
     }
 
     const createHash = (nonce) => {
-      let data = _.padStart(nonce.toString(16), 8, '0');
-      data += _.padStart(takerFee.toString(16), 4, '0');
-      data += _.padStart(makerFee.toString(16), 4, '0');
-      data += _.padStart(feePrice.toString(16), 7, '0');
-      data += side === 'buy' ? '1' : '0';
+      let input;
+      if (quote === this.tokenManager.eth) {
+        let data = _.padStart(nonce.toString(16), 8, '0');
+        data += _.padStart(takerFee.toString(16), 4, '0');
+        data += _.padStart(makerFee.toString(16), 4, '0');
+        data += _.padStart(feePrice.toString(16), 7, '0');
+        data += side === 'buy' ? '1' : '0';
 
-      let input = this.system.contract.substr(2);
-      input += _.padStart(amountSell.toString(16), 64, '0');
-      input += _.padStart(amountBuy.toString(16), 64, '0');
-      input += _.padStart(gasFee.toString(16), 64, '0');
-      input += data;
-      input += base.address.substr(2);
+        input = this.system.contract.substr(2);
+        input += _.padStart(amountSell.toString(16), 64, '0');
+        input += _.padStart(amountBuy.toString(16), 64, '0');
+        input += _.padStart(gasFee.toString(16), 64, '0');
+        input += data;
+        input += base.address.substr(2);
+      } else {
+        let data = _.padStart(nonce.toString(16), 8, '0');
+        data += _.padStart(takerFee.toString(16), 4, '0');
+        data += _.padStart(makerFee.toString(16), 4, '0');
+        data += '0000000';
+        data += side === 'buy' ? '1' : '0';
+
+        input = this.system.contract.substr(2);
+        input += _.padStart(amountSell.toString(16), 64, '0');
+        input += _.padStart(amountBuy.toString(16), 64, '0');
+        input += _.padStart(gasFee.toString(16), 64, '0');
+        input += data;
+        input += base.address.substr(2);
+        input += quote.address.substr(2);
+        input += _.padStart(feePrice.toString(16), 64, '0');
+      }
       return ethUtil.keccak256(new Buffer(input, 'hex'));
     };
 
@@ -348,7 +381,7 @@ class Joyso {
       nonce,
       maker_fee: makerFee,
       taker_fee: takerFee,
-      fee_price: feePrice,
+      fee_price: feePrice.toString(10),
       token_sell: tokenSell.substr(2),
       token_buy: tokenBuy.substr(2),
       user: this.address.substr(2),
@@ -356,8 +389,9 @@ class Joyso {
       gas_fee: gasFee.toString(10),
       amount_sell: amountSell.toString(10),
       amount_buy: amountBuy.toString(10),
-      payment_method: fee,
-      hash: hash.toString('hex')
+      payment_method: feeByJoy ? 'joy' : 'base',
+      hash: hash.toString('hex'),
+      is_buy: side === 'buy'
     }, vrs);
   }
 

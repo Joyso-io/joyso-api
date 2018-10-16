@@ -1,5 +1,14 @@
 # Change Log
 
+## v0.3.0 / 2018-10-16
+### Added
+- support for non-ETH quote pairs.
+- new option value `token` to `fee` of `withdraw` method.
+
+### Change
+- pair format from ETH_XXX to XXX_ETH.
+- option `fee` to `feeByJoy` of `buy`, `sell` and `trade` methods.
+
 ## v0.2.1 / 2018-10-08
 ### Fixed
 - stop timer after disconnect.
