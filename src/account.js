@@ -46,7 +46,7 @@ class Account {
   }
 
   async update() {
-    const json = await rp(this.client.createRequest(`accounts/advance?user=${this.address.substr(2)}`));
+    const json = await this.client.request('accounts/advance', { data: { user: this.address.substr(2) } });
     this.updateConfig(json);
   }
 }

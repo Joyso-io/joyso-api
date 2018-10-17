@@ -78,13 +78,13 @@ class Joyso {
     const hash = ethUtil.keccak256(raw);
     const vrs = this.sign(hash);
     try {
-      const r = await rp(this.createRequest('accounts', {
+      const r = await this.request('accounts', {
         method: 'POST',
-        body: Object.assign({
+        data: Object.assign({
           user: this.address.substr(2),
           nonce: nonce
         }, vrs)
-      }));
+      });
       this.accessToken = r.access_token;
     } finally {
       this.timer = setTimeout(() => this.updateAccessToken(), 6000 * 60);
@@ -94,10 +94,10 @@ class Joyso {
   async withdraw(options) {
     const withdraw = this.createWithdraw(options);
     try {
-      const r = await rp(this.createRequest('withdraw_queues', {
+      const r = await this.request('withdraw_queues', {
         method: 'POST',
-        body: withdraw
-      }));
+        data: withdraw
+      });
     } catch (e) {
       if (!options.retry && e.statusCode === 400 && e.error.fee_changed) {
         options.retry = true;
@@ -179,10 +179,10 @@ class Joyso {
     try {
       const hash = order.hash;
       delete order.hash;
-      const r = await rp(this.createRequest('orders', {
+      const r = await this.request('orders', {
         method: 'POST',
-        body: order
-      }));
+        data: order
+      });
       this.updateHashTable(order.nonce, hash);
       order.id = r.order.id;
       order.status = r.order.status;
@@ -396,12 +396,10 @@ class Joyso {
   }
 
   cancel(orderId) {
-    return rp(this.createRequest(`orders/${orderId}`, {
+    return this.request(`orders/${orderId}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${this.accessToken}`
-      }
-    }));
+      auth: true
+    });
   }
 
   subscribeOrderBook(pair, callback) {
@@ -524,11 +522,26 @@ class Joyso {
     return `${protocol}://${this.host}/cable`;
   }
 
-  createRequest(path, options) {
-    return Object.assign({
+  request(path, options = {}) {
+    let { headers, method, auth, data = {} } = options;
+    delete options.data;
+    delete options.auth;
+
+    if (auth) {
+      headers = headers || {};
+      headers['Authorization'] = `Bearer ${this.accessToken}`;
+      options.headers = headers;
+    }
+
+    const attr = (method || 'GET').toUpperCase() == 'GET' ? 'qs' : 'body';
+    options[attr] = options[attr] || {};
+    Object.assign(options[attr], data);
+
+    options = Object.assign({
       uri: `${this.apiUrl}/${path}`,
       json: true
     }, options);
+    return rp(options);
   }
 }
 

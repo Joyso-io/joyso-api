@@ -96,13 +96,13 @@ class Orders {
   }
 
   get(after = null) {
-    return rp(this.client.createRequest('orders/mine', {
-      qs: {
+    return this.client.request('orders/mine', {
+      data: {
         contract: this.client.system.contract.substr(2),
         user: this.address.substr(2),
         after: after
       }
-    }));
+    });
   }
 }
 

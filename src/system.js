@@ -25,7 +25,7 @@ class System {
   }
 
   async update() {
-    const json = await rp(this.client.createRequest('system'));
+    const json = await this.client.request('system');
     this.contract = `0x${json.contracts[0]}`;
     this.updateConfig(json);
     return json;

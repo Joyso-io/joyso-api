@@ -48,12 +48,12 @@ class Balances {
   }
 
   async get() {
-    const json = await rp(this.client.createRequest('balances', {
-      qs: {
+    const json = await this.client.request('balances', {
+      data: {
         contract: this.client.system.contract.substr(2),
         user: this.address.substr(2)
       }
-    }));
+    });
     json.balances.forEach(balance => this.updateBalance(balance));
   }
 }

@@ -74,13 +74,13 @@ class Trades {
   }
 
   get(after = null) {
-    return rp(this.client.createRequest('trades', {
-      qs: {
+    return this.client.request('trades', {
+      data: {
         token: this.base.address.substr(2),
         base: this.quote.address.substr(2),
         after: after
       }
-    }));
+    });
   }
 }
 

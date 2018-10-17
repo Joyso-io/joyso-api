@@ -73,13 +73,13 @@ class OrderBook {
   }
 
   get() {
-    return rp(this.client.createRequest('orders', {
-      qs: {
+    return this.client.request('orders', {
+      data: {
         contract: this.client.system.contract.substr(2),
         token: this.base.address.substr(2),
         base: this.quote.address.substr(2)
       }
-    }));
+    });
   }
 }
 

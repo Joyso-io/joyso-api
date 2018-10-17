@@ -104,12 +104,12 @@ class MyTrades {
   }
 
   get(after = null) {
-    return rp(this.client.createRequest('trades/mine', {
-      qs: {
+    return this.client.request('trades/mine', {
+      data: {
         user: this.address.substr(2),
         after: after
       }
-    }));
+    });
   }
 }
 
