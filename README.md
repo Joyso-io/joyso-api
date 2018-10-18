@@ -308,9 +308,9 @@ Options
 |fee|O|Specify how to pay fee. `eth`, `joy` or `token`. `token` can only be used when token is quote token.|
 
 ### getMyTrades({ from, to, quote, base, side, before, limit })
-Withdraw
+Get my trades
 ```JavaScript
-await joyso.withdraw({
+await joyso.getMyTrades({
   quote: 'ETH',
   base: 'JOY',
   side: 'sell',
