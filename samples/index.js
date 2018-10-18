@@ -73,6 +73,17 @@ async function start() {
       amount: 0.01,
       fee: 'eth'
     });
+
+    // get my trades
+    const trades = await joyso.getMyTrades({
+      quote: 'ETH',
+      base: 'JOY',
+      side: 'sell',
+      from: 1539680000,
+      to: 1539679000,
+      before: 123,
+      limit: 10
+    });
   } catch (e) {
     if (e.statusCode === 400) {
       console.log(e.error.error);

@@ -4,6 +4,7 @@
 ### Added
 - support for non-ETH quote pairs.
 - new option value `token` to `fee` of `withdraw` method.
+- get my trades api.
 
 ### Change
 - pair format from ETH_XXX to XXX_ETH.

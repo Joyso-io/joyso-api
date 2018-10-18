@@ -307,6 +307,33 @@ Options
 |amount|O|Amount to withdraw|
 |fee|O|Specify how to pay fee. `eth`, `joy` or `token`. `token` can only be used when token is quote token.|
 
+### getMyTrades({ from, to, quote, base, side, before, limit })
+Withdraw
+```JavaScript
+await joyso.withdraw({
+  quote: 'ETH',
+  base: 'JOY',
+  side: 'sell',
+  from: 1539129600,
+  to: 1539216000,
+  before: 123,
+  limit: 10
+});
+```
+Options
+
+|Name|Required|Description|
+|---|---|---|
+|quote||Quote token|
+|base||Base token|
+|side||Specify side. `buy`, `sell` or blank. Blank means both.|
+|from||From time (included). Unix timestamp|
+|to||To time (excluded). Unix timestamp|
+|before||Only return Trade ID before this. (excluded)|
+|limit||Specify size of records to return|
+
+Results are same with subscribeMyTrades.
+
 ### disconnect()
 Disconnect from JOYSO.
 

@@ -201,6 +201,42 @@ class Joyso {
     }
   }
 
+  async getMyTrades({ from, to, quote, base, side, before, limit } = {}) {
+    const options = {};
+    quote = this.tokenManager.symbolMap[quote];
+    if (quote) {
+      if (this.tokenManager.quotes.find(t => t === quote)) {
+        options.token_base = quote.address.substr(2);
+      } else {
+        throw new Error('invalid quote');
+      }
+    }
+    base = this.tokenManager.symbolMap[base];
+    if (base) {
+      options.token_target = base.address.substr(2);
+    }
+    if (side === 'buy') {
+      options.is_buy = true;
+    } else if (side === 'sell') {
+      options.is_buy = false
+    }
+    if (from) {
+      options.from = from;
+    }
+    if (to) {
+      options.to = to;
+    }
+    if (before) {
+      options.before = before;
+    }
+    if (limit) {
+      options.limit = limit;
+    }
+    options.user = this.address.substr(2);
+    const json = await this.request('trades/history', { data: options });
+    return this.myTrades.convert(json.trades);
+  }
+
   toAmountByPrice(token, baseAmount, price, method) {
     const amount = this.tokenManager.toRawAmount(token, baseAmount.mul(price), method);
     return this.tokenManager.toAmount(token, amount);
