@@ -37,20 +37,27 @@ class OrderBook {
   }
 
   unsubscribe() {
+    clearTimeout(this.retryTimer);
     this.cable.unsubscribe();
     delete this.cable;
     this.onUnsubscribe();
   }
 
   async update() {
-    const json = await this.get();
-    ['buy', 'sell'].forEach(t => {
-      Object.keys(json[t]).forEach(k => {
-        json[t][k] = new BigNumber(json[t][k]);
+    try {
+      clearTimeout(this.retryTimer);
+      const json = await this.get();
+      ['buy', 'sell'].forEach(t => {
+        Object.keys(json[t]).forEach(k => {
+          json[t][k] = new BigNumber(json[t][k]);
+        });
       });
-    });
-    this.orderBook = json;
-    this.notify();
+      this.orderBook = json;
+      this.notify();
+    } catch (e) {
+      console.log(e);
+      this.retryTimer = setTimeout(() => this.update(), 5000);
+    }
   }
 
   notify() {

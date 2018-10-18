@@ -54,6 +54,7 @@ class Funds {
   }
 
   unsubscribe() {
+    clearTimeout(this.retryTimer);
     this.cable.unsubscribe();
     delete this.cable;
     this.balances = {};
@@ -64,20 +65,27 @@ class Funds {
       return;
     }
     this.requesting = this.requestId;
+    clearTimeout(this.retryTimer);
     const after = this.funds.length ? this.funds[0].id : null;
-    const json = await this.get(after);
-    const funds = this.convert(json.funds, true);
-    if (after) {
-      this.funds.unshift(...funds);
-    } else {
-      this.funds = funds;
-    }
-    this.onReceived(this.funds);
-    if (this.requesting !== this.requestId) {
+    try {
+      const json = await this.get(after);
+      const funds = this.convert(json.funds, true);
+      if (after) {
+        this.funds.unshift(...funds);
+      } else {
+        this.funds = funds;
+      }
+      this.onReceived(this.funds);
+      if (this.requesting !== this.requestId) {
+        this.requesting = 0;
+        this.update();
+      } else {
+        this.requesting = 0;
+      }
+    } catch (e) {
+      console.log(e);
       this.requesting = 0;
-      this.update();
-    } else {
-      this.requesting = 0;
+      this.retryTimer = setTimeout(() => this.update(), 5000);
     }
   }
 

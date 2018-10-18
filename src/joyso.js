@@ -41,12 +41,13 @@ class Joyso {
     }
     this.cable = ActionCable.createConsumer(this.wsUrl, this.origin);
     this.system = new System(this);
-    const json = await this.system.update();
-    this.system.subscribe();
-    this.tokenManager = new TokenManager(this, json);
-    this.tokenManager.subscribe();
+    this.system.once('update', json => {
+      this.tokenManager = new TokenManager(this, json);
+      this.tokenManager.subscribe();
+    });
+    await this.system.connect();
     this.account = new Account(this, this.address);
-    await this.account.subscribe();
+    await this.account.connect();
     this.balances = new Balances({ client: this, address: this.address });
     await this.balances.subscribe();
     await this.updateAccessToken();

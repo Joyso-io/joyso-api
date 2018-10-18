@@ -14,7 +14,6 @@ class TokenManager {
         return;
         switch (data.e) {
           case 'update':
-            console.log(data.e);
             const token = this.addressMap[`0x${data.data.address}`];
             if (token) {
               if (data.data.price) {
@@ -38,7 +37,9 @@ class TokenManager {
 
   async refresh() {
     const json = await this.client.system.update();
-    this.reload(json);
+    if (json) {
+      this.reload(json);
+    }
   }
 
   reload(json) {

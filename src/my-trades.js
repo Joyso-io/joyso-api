@@ -51,6 +51,7 @@ class MyTrades {
   }
 
   unsubscribe() {
+    clearTimeout(this.retryTimer);
     this.cable.unsubscribe();
     delete this.cable;
     this.balances = {};
@@ -61,20 +62,27 @@ class MyTrades {
       return;
     }
     this.requesting = this.requestId;
+    clearTimeout(this.retryTimer);
     const after = this.trades.length ? this.trades[0].id : null;
-    const json = await this.get(after);
-    const trades = this.convert(json.trades, true);
-    if (after) {
-      this.trades.unshift(...trades);
-    } else {
-      this.trades = trades;
-    }
-    this.onReceived(this.trades);
-    if (this.requesting !== this.requestId) {
+    try {
+      const json = await this.get(after);
+      const trades = this.convert(json.trades, true);
+      if (after) {
+        this.trades.unshift(...trades);
+      } else {
+        this.trades = trades;
+      }
+      this.onReceived(this.trades);
+      if (this.requesting !== this.requestId) {
+        this.requesting = 0;
+        this.update();
+      } else {
+        this.requesting = 0;
+      }
+    } catch (e) {
+      console.log(e);
       this.requesting = 0;
-      this.update();
-    } else {
-      this.requesting = 0;
+      this.retryTimer = setTimeout(() => this.update(), 5000);
     }
   }
 
