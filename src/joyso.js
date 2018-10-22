@@ -260,9 +260,10 @@ class Joyso {
     }
   }
 
-  validateOrder(price, amount, side) {
+  validateOrder(price, amount, side, quote) {
     this.validateAmount(amount);
-    const v = new BigNumber(price).mul(1000000000);
+    const precision = new BigNumber(10).pow(quote.precision);
+    const v = new BigNumber(price).mul(precision);
     if (!v.truncated().equals(v)) {
       throw new Error('invalid price');
     }
@@ -299,9 +300,9 @@ class Joyso {
   }
 
   createOrder({ pair, price, amount, feeByJoy, side }) {
-    this.validateOrder(price, amount, side);
     const [base, quote]= this.tokenManager.getPair(pair);
     this.validatePair(base, quote);
+    this.validateOrder(price, amount, side, quote);
     let baseAmount = new BigNumber(amount);
     let method = side === 'buy' ? 'ceil' : 'floor';
     let quoteAmount = this.toAmountByPrice(quote, baseAmount, price, method);

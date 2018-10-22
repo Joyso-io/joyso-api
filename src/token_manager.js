@@ -58,7 +58,11 @@ class TokenManager {
     });
     this.eth = this.symbolMap.ETH;
     this.joy = this.symbolMap.JOY;
-    this.quotes = json.base.map(t => this.addressMap[`0x${t}`]);
+    this.quotes = json.quotes.map(t => {
+      const token = this.addressMap[`0x${t.address}`];
+      token.precision = t.precision;
+      return token;
+    });
     this.hiddenPairs = {};
     Object.keys(json.hidden_pairs).forEach(quote => {
       json.hidden_pairs[quote].forEach(base => {
