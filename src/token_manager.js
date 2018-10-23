@@ -3,6 +3,7 @@ const BigNumber = require('bignumber.js');
 class TokenManager {
   constructor(client, options) {
     this.client = client;
+    this.pairs = {};
     this.reload(options);
   }
 
@@ -63,20 +64,20 @@ class TokenManager {
       token.precision = t.precision;
       return token;
     });
-    this.hiddenPairs = {};
-    Object.keys(json.hidden_pairs).forEach(quote => {
-      json.hidden_pairs[quote].forEach(base => {
-        this.hiddenPairs[`${base}_${quote}`] = true;
-      });
+    this.pairs = {};
+    this.pairs['ETH'] = new Set(this.tokens.map(t => t.symbol));
+    Object.keys(json.pairs).forEach(k => this.pairs[k] = new Set(json.pairs[k]));
+    Object.keys(json.hidden_pairs).forEach(k => {
+      const set = this.pairs[k];
+      if (set) {
+        json.hidden_pairs[k].forEach(t => set.delete(t));
+      }
     });
   }
 
   getPair(pair) {
-    if (this.hiddenPairs[pair]) {
-      return [];
-    }
     let [base, quote] = pair.split('_');
-    return [this.symbolMap[base], this.symbolMap[quote]];
+    return this.pairs[quote] && this.pairs[quote].has(base) ? [this.symbolMap[base], this.symbolMap[quote]] : [];
   }
 
   toAmount(token, rawAmount) {
