@@ -75,15 +75,15 @@ class Joyso {
 
   async updateAccessToken() {
     const nonce = Math.floor(Date.now() / 1000);
-    const raw = `joyso${nonce}`;
-    const hash = ethUtil.keccak256(raw);
-    const vrs = this.sign(hash);
+    const raw = `Signing this message proves to JOYSO you are in control of your account without giving JOYSO access to any sensitive information. Message ID: ${nonce}`;
+    const vrs = this.sign(new Buffer(raw, 'utf8'));
     try {
       const r = await this.request('accounts', {
         method: 'POST',
         data: Object.assign({
           user: this.address.substr(2),
-          nonce: nonce
+          nonce: nonce,
+          version: 2
         }, vrs)
       });
       this.accessToken = r.access_token;
@@ -523,9 +523,9 @@ class Joyso {
     return this.funds;
   }
 
-  sign(hash) {
-    const message = ethUtil.hashPersonalMessage(hash);
-    const vrs = ethUtil.ecsign(message, ethUtil.toBuffer(keys[this.keyIndex]));
+  sign(message) {
+    const result = ethUtil.hashPersonalMessage(message);
+    const vrs = ethUtil.ecsign(result, ethUtil.toBuffer(keys[this.keyIndex]));
     return {
       v: vrs.v,
       r: vrs.r.toString('hex'),

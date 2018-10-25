@@ -1,5 +1,9 @@
 # Change Log
 
+## v0.4.0 / 2018-10-16
+### Improved
+- upgrade access token api.
+
 ## v0.3.0 / 2018-10-16
 ### Added
 - support for non-ETH quote pairs.
