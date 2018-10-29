@@ -83,7 +83,8 @@ class Joyso {
         data: Object.assign({
           user: this.address.substr(2),
           nonce: nonce,
-          version: 2
+          version: 2,
+          locale: 'en'
         }, vrs)
       });
       this.accessToken = r.access_token;
@@ -97,7 +98,8 @@ class Joyso {
     try {
       const r = await this.request('withdraw_queues', {
         method: 'POST',
-        data: withdraw
+        data: withdraw,
+        auth: true
       });
     } catch (e) {
       if (!options.retry && e.statusCode === 400 && e.error.fee_changed) {
@@ -182,7 +184,8 @@ class Joyso {
       delete order.hash;
       const r = await this.request('orders', {
         method: 'POST',
-        data: order
+        data: order,
+        auth: true
       });
       this.updateHashTable(order.nonce, hash);
       order.id = r.order.id;

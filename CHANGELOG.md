@@ -1,6 +1,6 @@
 # Change Log
 
-## v0.4.0 / 2018-10-16
+## v0.4.0 / 2018-10-29
 ### Improved
 - upgrade access token api.
 
