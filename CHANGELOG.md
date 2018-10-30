@@ -1,6 +1,10 @@
 # Change Log
 
-## v0.4.0 / 2018-10-29
+## v0.4.0 / 2018-10-30
+### Fixed
+- Gas fee has changed issue.
+- reconnect issue.
+
 ### Improved
 - upgrade access token api.
 

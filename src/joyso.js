@@ -15,6 +15,7 @@ const Account = require('./account');
 
 BigNumber.config({ DECIMAL_PLACES: 36 });
 
+const ACCESS_TOKEN_TIME = 600000;
 const ETH_MAX_FEE_PRICE = new BigNumber('100000000');
 const NON_ETH_MAX_FEE_PRICE = new BigNumber('1000000000000000000000000000');
 const keys = {};
@@ -39,6 +40,7 @@ class Joyso {
     if (this.connected) {
       return;
     }
+    await this.updateAccessToken();
     this.cable = ActionCable.createConsumer(this.wsUrl, this.origin);
     this.system = new System(this);
     this.system.once('update', json => {
@@ -50,7 +52,6 @@ class Joyso {
     await this.account.connect();
     this.balances = new Balances({ client: this, address: this.address });
     await this.balances.subscribe();
-    await this.updateAccessToken();
     this.orders = new Orders({
       client: this,
       address: this.address
@@ -73,7 +74,7 @@ class Joyso {
     delete this.accessToken;
   }
 
-  async updateAccessToken() {
+  async updateAccessToken(catchError = false) {
     const nonce = Math.floor(Date.now() / 1000);
     const raw = `Signing this message proves to JOYSO you are in control of your account without giving JOYSO access to any sensitive information. Message ID: ${nonce}`;
     const vrs = this.sign(new Buffer(raw, 'utf8'));
@@ -88,8 +89,14 @@ class Joyso {
         }, vrs)
       });
       this.accessToken = r.access_token;
+    } catch (e) {
+      if (!catchError) {
+        throw e;
+      } else if (e.statusCode === 400) {
+        throw new Error('Failed to update access token.');
+      }
     } finally {
-      this.timer = setTimeout(() => this.updateAccessToken(), 6000 * 60);
+      this.timer = setTimeout(() => this.updateAccessToken(true), ACCESS_TOKEN_TIME);
     }
   }
 
@@ -195,10 +202,8 @@ class Joyso {
     } catch (e) {
       if (!options.retry && e.statusCode === 400 && e.error.fee_changed) {
         await this.tokenManager.refresh();
-        if (e.error.length === 1) {
-          options.retry = true;
-          return this.trade(options);
-        }
+        options.retry = true;
+        return this.trade(options);
       }
       throw e;
     }
