@@ -330,7 +330,7 @@ Options
 |from||From time (included). Unix timestamp|
 |to||To time (excluded). Unix timestamp|
 |before||Only return Trade ID before this. (excluded)|
-|limit||Specify size of records to return|
+|limit||Specify size of records to return. Default 100, max 1000|
 
 Results are same with subscribeMyTrades.
 
