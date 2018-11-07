@@ -23,6 +23,23 @@ class Account extends EventEmitter {
         reject(e);
       });
     });
+    this.watchMyAdvance();
+    return promise;
+  }
+
+  destroy() {
+    clearTimeout(this.retryTimer);
+    this.cable.unsubscribe();
+    delete this.cable;
+  }
+
+  watchMyAdvance() {
+    if (!this.client.system.advanceable) {
+      this.advanceReal = 0;
+      this.advanceInOrder = 0;
+      this.emit('update', { advance_real: 0, advance_in_order: 0});
+      return;
+    }
     this.cable = this.client.cable.subscriptions.create({
       channel: 'AccountAdvanceChannel',
       contract: this.client.system.contract.substr(2),
@@ -37,13 +54,6 @@ class Account extends EventEmitter {
         }
       }
     });
-    return promise;
-  }
-
-  destroy() {
-    clearTimeout(this.retryTimer);
-    this.cable.unsubscribe();
-    delete this.cable;
   }
 
   async update() {

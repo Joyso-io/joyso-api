@@ -119,7 +119,7 @@ class Joyso {
   }
 
   repayWithdrawFee(token) {
-    if (this.account.advanceReal !== 0 && this.account.advanceInOrder === 0) {
+    if (this.system.advanceable && this.account.advanceReal !== 0 && this.account.advanceInOrder === 0) {
       const ratio = this.tokenManager.eth.withdrawFee.div(token.withdrawFee);
       return new BigNumber(this.account.advanceReal).div(ratio).truncated().add(token.withdrawFee);
     } else {
@@ -295,8 +295,7 @@ class Joyso {
     let gasFee = quote.gasFee;
     let baseBalance = this.balances.balances[quote.symbol];
     baseBalance = this.tokenManager.toRawAmount(quote, baseBalance && baseBalance.available || 0);
-    if (
-      side !== 'buy' && !feeByJoy && gasFee.gt(baseBalance)
+    if (this.system.advanceable && side !== 'buy' && !feeByJoy && gasFee.gt(baseBalance)
       && this.account.advanceReal === 0 && this.account.advanceInOrder === 0
     ) {
       return new BigNumber(0);

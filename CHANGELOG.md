@@ -1,5 +1,9 @@
 # Change Log
 
+## v0.4.1 / 2018-11-07
+### Added
+- support advanceable toggle.
+
 ## v0.4.0 / 2018-10-30
 ### Fixed
 - Gas fee has changed issue.

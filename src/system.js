@@ -5,6 +5,7 @@ class System extends EventEmitter {
   constructor(client) {
     super();
     this.client = client;
+    this.advanceable = true;
   }
 
   connect() {
@@ -49,6 +50,7 @@ class System extends EventEmitter {
       const json = await this.client.request('system');
       this.connected = true;
       this.contract = `0x${json.contracts[0]}`;
+      this.advanceable = json.advanceable;
       this.updateConfig(json);
       return json;
     } catch (e) {
